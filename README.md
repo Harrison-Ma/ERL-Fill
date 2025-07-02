@@ -40,6 +40,8 @@ gym
 tqdm
 
 numpy
+
+
 ```
 
 Install via:
