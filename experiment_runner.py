@@ -10,21 +10,24 @@ from WeightEnv import WeightEnv
 def run_experiment_3(algo='er_ddpg', train=True, episodes=1000, max_steps=100, device='cuda'):
     # from WeightDemo import WeightEnv
     from baseline_experiments import (
-        # build_er_ddpg_agent, build_ddpg_agent,
-        # build_td3_agent, build_ppo_agent, build_sac_agent,
+        # build_er_ddpg_agent,
+        build_ddpg_agent,
+        build_td3_agent,
+        build_ppo_agent,
+        build_sac_agent,
         build_td3_bc_agent, build_cql_agent,
         # build_emotion_td3_agent,
         build_emotion_sac_agent,
-        # build_fuzzy_agent,
+        build_fuzzy_agent,
         build_ppol_agent, build_rls_pid_agent
     )
-    # from td3_module import train_td3
+    from DifferentModules.td3_agent import train_td3
     from DifferentModules.td3_bc_agent import train_td3_bc
     from DifferentModules.cql_agent import train_cql
     from DifferentModules.PPOL import train_ppo_lagrangian
     from DifferentModules.rls_pidagent import train_rls_pid
-    # from ppo_module import train_ppo
-    # from sac_module import train_sac
+    from DifferentModules.ppo_agent import train_ppo
+    from DifferentModules.sac_agent import train_sac
     # from Emotion_TD3 import train_emotion_td3
     import os
     import numpy as np
@@ -32,17 +35,17 @@ def run_experiment_3(algo='er_ddpg', train=True, episodes=1000, max_steps=100, d
     env = WeightEnv()
     algo_builders = {
         # 'er_ddpg': build_er_ddpg_agent,
-        # 'ddpg': build_ddpg_agent,
-        # 'td3': build_td3_agent,
+        'ddpg': build_ddpg_agent,
+        'td3': build_td3_agent,
         'td3_bc': build_td3_bc_agent,
-        # 'ppo': build_ppo_agent,
-        # 'sac': build_sac_agent,
+        'ppo': build_ppo_agent,
+        'sac': build_sac_agent,
         'cql': build_cql_agent,
         'ppol': build_ppol_agent,
         'rls_pid': build_rls_pid_agent,
         # 'emotion_td3': build_emotion_td3_agent,
         'emotion_sac': build_emotion_sac_agent,
-        # 'fuzzy': build_fuzzy_agent  # ✅ 添加 fuzzy agent
+        'fuzzy': build_fuzzy_agent  # ✅ 添加 fuzzy agent
     }
     assert algo in algo_builders, f"Unsupported algorithm: {algo}"
     agent = algo_builders[algo](env, device=device)
@@ -55,27 +58,26 @@ def run_experiment_3(algo='er_ddpg', train=True, episodes=1000, max_steps=100, d
 
     if train and algo != 'fuzzy':  # 模糊控制不训练
         print(f"�� Start training {algo.upper()}...")
-        if algo in ['er_ddpg', 'ddpg']:
-            print("ddpg is developing.")
-            # from WeightDemo import train_ddpg
-            # train_ddpg(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
-            # agent.save(model_path)
+        if algo == 'ddpg':
+            from DifferentModules.ddpg_agent import train_ddpg
+            train_ddpg(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
+            agent.save(model_path)
 
-        # elif algo == 'td3':
-        #     train_td3(env=env, agent=agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
-        #     agent.save(model_path)
+        elif algo == 'td3':
+            train_td3(env=env, agent=agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
+            agent.save(model_path)
 
         elif algo == 'td3_bc':
             train_td3_bc(env=env, agent=agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
             agent.save(model_path)
 
-        # elif algo == 'ppo':
-        #     train_ppo(env=env, agent=agent, episodes=episodes, max_steps=max_steps,
-        #               log_prefix=log_prefix, model_path=model_path)
+        elif algo == 'ppo':
+            train_ppo(env=env, agent=agent, episodes=episodes, max_steps=max_steps,
+                      log_prefix=log_prefix, model_path=model_path)
 
-        # elif algo == 'sac':
-        #     train_sac(env=env, agent=agent, episodes=episodes, max_steps=max_steps,
-        #               log_prefix=log_prefix, model_path=model_path)
+        elif algo == 'sac':
+            train_sac(env=env, agent=agent, episodes=episodes, max_steps=max_steps,
+                      log_prefix=log_prefix, model_path=model_path)
 
         elif algo == 'cql':
             train_cql(env=env, agent=agent, episodes=episodes, max_steps=max_steps,
@@ -327,7 +329,7 @@ if __name__ == "__main__":
     elif experiment_id == 3:
         print(f"\n=== Running Algorithm Comparison for All Methods ===")
         # algo_list = ['er_ddpg', 'ddpg', 'td3','td3_bc','ppo', 'sac', 'cql', 'ppol', 'rls_pid', 'emotion_td3','emotion_sac', 'fuzzy']  # ✅ 包含模糊控制
-        algo_list = ['td3_bc','rls_pid', 'cql','emotion_sac']  # ✅ 包含模糊控制
+        algo_list = ['td3','sac','ppo','ddpg','td3_bc','rls_pid', 'cql','emotion_sac', 'fuzzy']  # ✅ 包含模糊控制
         results = []
 
         for algo in algo_list:
