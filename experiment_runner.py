@@ -10,7 +10,8 @@ from WeightEnv import WeightEnv
 def run_experiment_3(algo='er_ddpg', train=True, episodes=1000, max_steps=100, device='cuda'):
     # from WeightDemo import WeightEnv
     from baseline_experiments import (
-        # build_er_ddpg_agent, build_ddpg_agent,
+        # build_er_ddpg_agent,
+        build_ddpg_agent,
         # build_td3_agent, build_ppo_agent, build_sac_agent,
         build_td3_bc_agent, build_cql_agent,
         # build_emotion_td3_agent,
@@ -32,7 +33,7 @@ def run_experiment_3(algo='er_ddpg', train=True, episodes=1000, max_steps=100, d
     env = WeightEnv()
     algo_builders = {
         # 'er_ddpg': build_er_ddpg_agent,
-        # 'ddpg': build_ddpg_agent,
+        'ddpg': build_ddpg_agent,
         # 'td3': build_td3_agent,
         'td3_bc': build_td3_bc_agent,
         # 'ppo': build_ppo_agent,
@@ -55,11 +56,10 @@ def run_experiment_3(algo='er_ddpg', train=True, episodes=1000, max_steps=100, d
 
     if train and algo != 'fuzzy':  # 模糊控制不训练
         print(f"�� Start training {algo.upper()}...")
-        if algo in ['er_ddpg', 'ddpg']:
-            print("ddpg is developing.")
-            # from WeightDemo import train_ddpg
-            # train_ddpg(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
-            # agent.save(model_path)
+        if algo == 'ddpg':
+            from DifferentModules.ddpg_agent import train_ddpg
+            train_ddpg(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
+            agent.save(model_path)
 
         # elif algo == 'td3':
         #     train_td3(env=env, agent=agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
@@ -327,7 +327,7 @@ if __name__ == "__main__":
     elif experiment_id == 3:
         print(f"\n=== Running Algorithm Comparison for All Methods ===")
         # algo_list = ['er_ddpg', 'ddpg', 'td3','td3_bc','ppo', 'sac', 'cql', 'ppol', 'rls_pid', 'emotion_td3','emotion_sac', 'fuzzy']  # ✅ 包含模糊控制
-        algo_list = ['td3_bc','rls_pid', 'cql','emotion_sac']  # ✅ 包含模糊控制
+        algo_list = ['ddpg','td3_bc','rls_pid', 'cql','emotion_sac']  # ✅ 包含模糊控制
         results = []
 
         for algo in algo_list:

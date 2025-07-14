@@ -46,11 +46,12 @@ def train_agent(env, agent, train_fn, episodes=1000, max_steps=100, model_path="
 #     agent.emotion = EmotionModule(device=device)
 #     return agent
 
-# def build_ddpg_agent(env, device):
-#     from WeightDemo import DDPGAgent, EmotionModuleNone
-#     agent = DDPGAgent(env, device=device, use_td_error=False)
-#     agent.emotion = EmotionModuleNone()
-#     return agent
+def build_ddpg_agent(env, device):
+    from DifferentModules.ddpg_agent import DDPGAgent
+    from EmotionModule import EmotionModuleNone
+    agent = DDPGAgent(env, device=device, use_td_error=False)
+    agent.emotion = EmotionModuleNone()
+    return agent
 
 # def build_td3_agent(env, device):
 #     from td3_module import TD3Agent
@@ -101,10 +102,10 @@ def build_emotion_sac_agent(env, device,lambda_emo=0.05):
 #     return FuzzyControllerAgent(env, device)
 
 # === 训练器 ===
-# def train_ddpg(env, agent, episodes=1000, max_steps=100, log_prefix="ddpg"):
-#     from WeightDemo import train_ddpg
-#     return train_ddpg(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
-#
+def train_ddpg(env, agent, episodes=1000, max_steps=100, log_prefix="ddpg"):
+    from DifferentModules.ddpg_agent import train_ddpg
+    return train_ddpg(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
+
 # def train_td3(env, agent, episodes=1000, max_steps=100, log_prefix="td3"):
 #     from td3_module import train_td3
 #     return train_td3(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
@@ -151,7 +152,7 @@ def train_rls_pid(env, agent, episodes=1000, max_steps=100, log_prefix="rls_pid"
 # === 构造器注册表 ===
 algo_builders = {
     # "er_ddpg": build_er_ddpg_agent,
-    # "ddpg": build_ddpg_agent,
+    "ddpg": build_ddpg_agent,
     # "td3": build_td3_agent,
     "td3_bc": build_td3_bc_agent,
     # "emotion_td3": build_emotion_td3_agent,  # ✅ 新增
@@ -166,7 +167,7 @@ algo_builders = {
 # === 训练器注册表 ===
 algo_trainers = {
     # "er_ddpg": train_ddpg,
-    # "ddpg": train_ddpg,
+    "ddpg": train_ddpg,
     # "td3": train_td3,
     "td3_bc": train_td3_bc,
     # "emotion_td3": train_emotion_td3,  # ✅ 新增
