@@ -377,7 +377,7 @@ if __name__ == "__main__":
     # === 全局配置 ===
     device = 'cuda'
     train_mode = True        # ✅ True 开始训练，False 开始测试
-    experiment_id = 1        # ✅ 设置为 1、2、3、4 选择实验组
+    experiment_id = 3        # ✅ 设置为 1、2、3、4 选择实验组
     # selected_algo = 'er_ddpg'  # 实验3、4专用
     episodes = 5
     max_steps = 50
@@ -452,28 +452,28 @@ if __name__ == "__main__":
     #     print("\n=== Running Multi-Stage Pretraining Evaluation ===")
     #     run_experiment_2(device=device, train=train_mode, use_off_sim=use_offline_sim)
 
-    # === 实验三：强化学习算法对比 ===
-    elif experiment_id == 3:
-        print(f"\n=== Running Algorithm Comparison for All Methods ===")
-        algo_list = ['er_ddpg', 'ddpg', 'td3', 'ppo', 'sac','emotion_td3','emotion_sac']
-        # algo_list = ['emotion_sac','sac']
-        # algo_list = ['emotion_sac']
-        results = []
-
-        for algo in algo_list:
-            print(f"\n>>> 🚀 Start {algo.upper()} Training & Testing")
-            model_path, test_reward = run_experiment_3(
-                algo=algo,
-                train=train_mode,
-                episodes=episodes,
-                max_steps=max_steps,
-                device=device
-            )
-            results.append((algo, test_reward))
-
-        print("\n=== ✅ 实验三结果对比 ===")
-        for algo, reward in results:
-            print(f"[{algo.upper()}] 平均测试奖励: {reward:.2f}")
+    # # === 实验三：强化学习算法对比 ===
+    # elif experiment_id == 3:
+    #     print(f"\n=== Running Algorithm Comparison for All Methods ===")
+    #     algo_list = ['er_ddpg', 'ddpg', 'td3', 'ppo', 'sac','emotion_td3','emotion_sac']
+    #     # algo_list = ['emotion_sac','sac']
+    #     # algo_list = ['emotion_sac']
+    #     results = []
+    #
+    #     for algo in algo_list:
+    #         print(f"\n>>> 🚀 Start {algo.upper()} Training & Testing")
+    #         model_path, test_reward = run_experiment_3(
+    #             algo=algo,
+    #             train=train_mode,
+    #             episodes=episodes,
+    #             max_steps=max_steps,
+    #             device=device
+    #         )
+    #         results.append((algo, test_reward))
+    #
+    #     print("\n=== ✅ 实验三结果对比 ===")
+    #     for algo, reward in results:
+    #         print(f"[{algo.upper()}] 平均测试奖励: {reward:.2f}")
 
     # === 实验三：强化学习算法对比 ===
     elif experiment_id == 3:
