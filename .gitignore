@@ -16,7 +16,7 @@ runs/
 *.ipa
 *.apk
 *.log
-#*.pth
+*.pth
 *.pyc
 *.png
 
