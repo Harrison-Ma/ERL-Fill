@@ -22,6 +22,7 @@ runs/
 
 
 *.csv
+*.pth
 
 __pycache__/
 saved_models/
