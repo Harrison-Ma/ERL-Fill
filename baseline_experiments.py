@@ -53,9 +53,9 @@ def build_ddpg_agent(env, device):
     agent.emotion = EmotionModuleNone()
     return agent
 
-# def build_td3_agent(env, device):
-#     from td3_module import TD3Agent
-#     return TD3Agent(env, device=device)
+def build_td3_agent(env, device):
+    from DifferentModules.td3_agent import TD3Agent
+    return TD3Agent(env, device=device)
 
 def build_td3_bc_agent(env, device):
     from DifferentModules.td3_bc_agent import TD3BCAgent
@@ -65,13 +65,13 @@ def build_td3_bc_agent(env, device):
 #     from Emotion_TD3 import EmotionTD3Agent
 #     return EmotionTD3Agent(env, device=device)
 
-# def build_ppo_agent(env, device):
-#     from ppo_module import PPOAgent
-#     return PPOAgent(env, device=device)
+def build_ppo_agent(env, device):
+    from DifferentModules.ppo_agent import PPOAgent
+    return PPOAgent(env, device=device)
 #
-# def build_sac_agent(env, device):
-#     from sac_module import SACAgent
-#     return SACAgent(env, device=device)
+def build_sac_agent(env, device):
+    from DifferentModules.sac_agent import SACAgent
+    return SACAgent(env, device=device)
 
 def build_cql_agent(env, device):
     from DifferentModules.cql_agent import CQLAgent
@@ -96,19 +96,19 @@ def build_emotion_sac_agent(env, device,lambda_emo=0.05):
     # agent.emotion = EmotionModule(device=device)  # 手动挂载情感模块
     return agent
 
-# from fuzzy import FuzzyControllerAgent
-#
-# def build_fuzzy_agent(env, device='cpu'):
-#     return FuzzyControllerAgent(env, device)
+from DifferentModules.Fuzzy_PID_agent import FuzzyControllerAgent
+
+def build_fuzzy_agent(env, device='cpu'):
+    return FuzzyControllerAgent(env, device)
 
 # === 训练器 ===
 def train_ddpg(env, agent, episodes=1000, max_steps=100, log_prefix="ddpg"):
     from DifferentModules.ddpg_agent import train_ddpg
     return train_ddpg(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
 
-# def train_td3(env, agent, episodes=1000, max_steps=100, log_prefix="td3"):
-#     from td3_module import train_td3
-#     return train_td3(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
+def train_td3(env, agent, episodes=1000, max_steps=100, log_prefix="td3"):
+    from DifferentModules.td3_agent import train_td3
+    return train_td3(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
 
 def train_td3_bc(env, agent, episodes=1000, max_steps=100, log_prefix="td3_bc"):
     from DifferentModules.td3_bc_agent import train_td3_bc
@@ -126,13 +126,13 @@ def train_emotion_sac(env, agent, episodes=1000, max_steps=100, log_prefix="emot
 #     from simple_emotion_sac import train_simple_sac
 #     return train_simple_sac(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
 #
-# def train_ppo(env, agent, episodes=1000, max_steps=100, log_prefix="ppo"):
-#     from ppo_module import train_ppo
-#     return train_ppo(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
+def train_ppo(env, agent, episodes=1000, max_steps=100, log_prefix="ppo"):
+    from DifferentModules.ppo_agent import train_ppo
+    return train_ppo(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
 
-# def train_sac(env, agent, episodes=1000, max_steps=100, log_prefix="sac",pretrain_path = None):
-#     from sac_module import train_sac
-#     return train_sac(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix,pretrain_path = pretrain_path)
+def train_sac(env, agent, episodes=1000, max_steps=100, log_prefix="sac",pretrain_path = None):
+    from DifferentModules.sac_agent import train_sac
+    return train_sac(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix,pretrain_path = pretrain_path)
 
 def train_cql(env, agent, episodes=1000, max_steps=100, log_prefix="cql",pretrain_path = None):
     from DifferentModules.cql_agent import train_cql
@@ -153,12 +153,12 @@ def train_rls_pid(env, agent, episodes=1000, max_steps=100, log_prefix="rls_pid"
 algo_builders = {
     # "er_ddpg": build_er_ddpg_agent,
     "ddpg": build_ddpg_agent,
-    # "td3": build_td3_agent,
+    "td3": build_td3_agent,
     "td3_bc": build_td3_bc_agent,
     # "emotion_td3": build_emotion_td3_agent,  # ✅ 新增
     "emotion_sac": build_emotion_sac_agent,   # ← 加上Emotion-SAC
-    # "ppo": build_ppo_agent,
-    # "sac": build_sac_agent,
+    "ppo": build_ppo_agent,
+    "sac": build_sac_agent,
     "cql": build_cql_agent,
     "ppol": build_ppol_agent,
     "rls_pid": build_rls_pid_agent
@@ -168,12 +168,12 @@ algo_builders = {
 algo_trainers = {
     # "er_ddpg": train_ddpg,
     "ddpg": train_ddpg,
-    # "td3": train_td3,
+    "td3": train_td3,
     "td3_bc": train_td3_bc,
     # "emotion_td3": train_emotion_td3,  # ✅ 新增
     "emotion_sac": train_emotion_sac,
-    # "ppo": train_ppo,
-    # "sac": train_sac,
+    "ppo": train_ppo,
+    "sac": train_sac,
     "cql": train_cql,
     "ppol": train_ppol,
     "rls_pid": train_rls_pid
