@@ -19,7 +19,7 @@ runs/
 *.pth
 *.pyc
 *.png
-
+*.pth
 
 *.csv
 
