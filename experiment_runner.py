@@ -13,7 +13,7 @@ from DifferentModules.td3_agent import TD3Agent
 from DifferentModules.sac_agent import SACAgent,train_sac
 from DifferentModules.ERL_Fill_agent import EmotionSACAgent,train_emotion_sac
 from DifferentModules.simple_emotion_sac_agent import SimpleEmotionSACAgent,train_simple_sac
-
+from MutiConditionEnv import MultiConditionWeightEnv
 
 def run_experiment_1(
     episodes=1000, max_steps=500, device='cuda', env_mode='sim',
@@ -198,6 +198,44 @@ def run_experiment_1(
 
     return results
 
+def run_experiment_2(device='cuda', max_steps=100, train=True, use_off_sim=1):
+    # 预设阶段训练配置
+    experiment_configs = {
+        1: [{"env_mode": "sim",     "episodes": 5000, "log_prefix": "stage1_sim"}],
+        0: [{"env_mode": "onboard", "episodes": 500,  "log_prefix": "stage2_onboard"}],
+        2: [{"env_mode": "real",    "episodes": 100,  "log_prefix": "stage3_real"}],
+        3: [{"env_mode": "continue", "episodes": 5000, "log_prefix": "stage3_real"}]
+    }
+
+    stage_names = {1: "stage1", 0: "stage2", 2: "stage3", 3:"stage4"}
+
+    if use_off_sim not in experiment_configs:
+        print(f"❌ Invalid value for use_off_sim: {use_off_sim}. Must be 0, 1,  2 or 3.")
+        return
+
+    selected_stage = experiment_configs[use_off_sim]
+    stage_name = stage_names[use_off_sim]
+
+    print(f"\n🚀 Starting {stage_name.upper()} pretraining experiment...\n")
+
+    model_path = None  # 可复用权重路径
+
+    for i, cfg in enumerate(selected_stage):
+        print(f"▶️  Phase {i+1} | Mode: {cfg['env_mode']} | Episodes: {cfg['episodes']}")
+
+        model_path = run_experiment_1(
+            emotion_modes=['transformer'],
+            algo_list=['sac'],
+            episodes=cfg["episodes"],
+            max_steps=max_steps,
+            device=device,
+            env_mode=cfg["env_mode"],
+            train=train,
+            experiment_id=3,
+            lambda_emo = 0.05
+        )
+
+    print(f"✅ {stage_name.upper()} training complete. Final model saved at: {model_path}")
 
 def run_experiment_3(algo='er_ddpg', train=True, episodes=1000, max_steps=100, device='cuda'):
     # from WeightDemo import WeightEnv
@@ -372,12 +410,217 @@ def run_experiment_3(algo='er_ddpg', train=True, episodes=1000, max_steps=100, d
 
     return model_path, avg_reward
 
+def run_experiment_4(train=True, episodes=1000, max_steps=100, device='cuda', algo='er_ddpg'):
+    """
+    实验四：多工况对比实验（ER-DDPG）
+    """
+    experiment_configs = {
+        "variant_25kg": {
+            "name": "Condition Variant - 25kg±25g",
+            "env_kwargs": {
+                "target_weight": 25000,
+                "target_weight_err": 25,
+                "target_time": 2.5,
+                "bounds": {
+                    "fast_weight": (7000, 18000),
+                    "medium_weight": (0, 1),
+                    "slow_weight": (24900, 25000),
+                    "fast_opening": (35, 75),
+                    "medium_opening": (3, 5),
+                    "slow_opening": (5, 20),
+                    "fast_delay": (100, 300),
+                    "medium_delay": (100, 200),
+                    "slow_delay": (100, 200),
+                    "unload_delay": (300, 500)
+                }
+            },
+        },
+        "variant_20kg": {
+            "name": "Condition Variant - 20kg±20g",
+            "env_kwargs": {
+                "target_weight": 20000,
+                "target_weight_err": 20,
+                "target_time": 2.0,
+                "bounds": {
+                    "fast_weight": (6000, 15000),
+                    "medium_weight": (0, 1),
+                    "slow_weight": (19800, 20000),
+                    "fast_opening": (30, 70),
+                    "medium_opening": (3, 5),
+                    "slow_opening": (5, 18),
+                    "fast_delay": (80, 250),
+                    "medium_delay": (80, 180),
+                    "slow_delay": (80, 180),
+                    "unload_delay": (280, 480)
+                }
+            },
+        },
+        "variant_15kg": {
+            "name": "Condition Variant - 15kg±15g",
+            "env_kwargs": {
+                "target_weight": 15000,
+                "target_weight_err": 15,
+                "target_time": 1.5,
+                "bounds": {
+                    "fast_weight": (5000, 12000),
+                    "medium_weight": (0, 1),
+                    "slow_weight": (14800, 15000),
+                    "fast_opening": (25, 65),
+                    "medium_opening": (2, 4),
+                    "slow_opening": (4, 15),
+                    "fast_delay": (60, 200),
+                    "medium_delay": (60, 150),
+                    "slow_delay": (60, 150),
+                    "unload_delay": (250, 450)
+                }
+            },
+        }
+    }
+
+    # === 2. Agent 构建函数 ===
+    def build_agent(env, algo_name, device):
+        if algo_name == 'er_ddpg':
+            # from WeightDemo import DDPGAgent, EmotionModule
+            agent = DDPGAgent(env, device=device, use_td_error=True)
+            agent.emotion = EmotionModule(device=device)
+        # elif algo_name == 'emotion_td3':
+        #     from Emotion_TD3 import EmotionTD3Agent
+        #     agent = EmotionTD3Agent(env, device=device, use_td_error=True)
+        elif algo_name == 'emotion_sac':
+            # from Emotion_sac import EmotionSACAgent
+            agent = EmotionSACAgent(env, device=device)
+            # agent.emotion = EmotionModule(device=device)
+        else:
+            raise ValueError(f"Unsupported algorithm: {algo_name}")
+        return agent
+
+    # === 3. Train 函数映射 ===
+    train_funcs = {
+        'er_ddpg': lambda env, agent, episodes, max_steps, log_prefix, logger:
+        train_ddpg(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix, logger=logger),
+        # 'emotion_td3': lambda env, agent, episodes, max_steps, log_prefix, logger:
+        # train_emotion_td3(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix),
+        'emotion_sac': lambda env, agent, episodes, max_steps, log_prefix, logger:
+        train_emotion_sac(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
+    }
+
+    # === 4. 初始化目录 ===
+    os.makedirs(f"saved_models/{algo}", exist_ok=True)
+    os.makedirs(f"logs/{algo}", exist_ok=True)
+    os.makedirs("analysis_outputs/exp4", exist_ok=True)
+
+    results = []
+
+    for key, cfg in experiment_configs.items():
+        print(f"\n=== Running {algo.upper()} under condition: {cfg['name']} ===")
+
+        # 创建环境和Agent
+        env = MultiConditionWeightEnv(cfg["env_kwargs"])
+        agent = build_agent(env, algo, device)
+        env.attach_agent(agent)
+
+        log_prefix = f"exp4_{algo}_{key}"
+        model_path = f"saved_models/{algo}/{key}_final.pth"
+        log_file_path = f"logs/{algo}/train_{log_prefix}.log"
+
+        # Logger配置
+        logger = logging.getLogger(log_prefix)
+        logger.setLevel(logging.INFO)
+        if not logger.handlers:
+            fh = logging.FileHandler(log_file_path, mode='w', encoding='utf-8')
+            fh.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+            logger.addHandler(fh)
+
+        # === 训练 ===
+        if train:
+            print(f"🚀 Start training {algo.upper()} under {cfg['name']}")
+            train_funcs[algo](env, agent, episodes, max_steps, log_prefix, logger)
+            agent.save(model_path)
+            print(f"✅ Model saved to {model_path}")
+
+        # === 测试 ===
+        agent.load(model_path)
+        total_reward, total_weight_err, total_time = 0, 0, 0
+        results_detail = []
+
+        test_log_file = f"logs/{algo}/test_{log_prefix}.log"
+        with open(test_log_file, "w", encoding="utf-8") as f:
+            for ep in range(10):
+                state = env.reset()
+                ep_reward = 0
+                for _ in range(max_steps):
+                    if algo in ['ppo', 'sac']:
+                        action = agent.act(state, deterministic=True) if hasattr(agent, 'act') else agent.select_action(
+                            state)
+                    else:
+                        action = agent.act(state, add_noise=False)
+
+                    if isinstance(action, tuple):
+                        action = action[0]  # 有些agent返回(action, value)的，取第一个
+
+                    state, reward, done, info = env.step(action)
+                    ep_reward += reward
+                    if done:
+                        break
+
+                weight_err = info.get("weight_error", 0.0)
+                fill_time = info.get("total_time", 0.0)
+                slow_weight = info.get("action", {}).get("slow_weight", 0.0)
+                emotion = agent.emotion.get_emotion()
+                if isinstance(emotion, torch.Tensor):
+                    emotion = emotion.detach().cpu().numpy().squeeze()
+                emotion = np.array(emotion).flatten()
+
+                print(f"🎯 {cfg['name']} Episode {ep + 1}: Reward = {ep_reward:.2f}, "
+                      f"WeightErr = {weight_err:.2f}g, Time = {fill_time:.2f}s, SlowWeight = {slow_weight:.2f}g")
+                f.write(f"[{cfg['name']} Episode {ep + 1}] Reward: {ep_reward:.2f} | "
+                        f"WeightErr: {weight_err:.2f}g | Time: {fill_time:.2f}s | SlowWeight: {slow_weight:.2f}g | "
+                        f"Emotion: [Curi: {emotion[0]:.2f}, Cons: {emotion[1]:.2f}, Anx: {emotion[2]:.2f}]\n")
+
+                total_reward += ep_reward
+                total_weight_err += weight_err
+                total_time += fill_time
+
+                results_detail.append({
+                    "Condition": cfg['name'],
+                    "Episode": ep + 1,
+                    "Reward": ep_reward,
+                    "WeightErr": weight_err,
+                    "Time": fill_time,
+                    "SlowWeight": slow_weight,
+                    "Curiosity": float(emotion[0]),
+                    "Conservativeness": float(emotion[1]),
+                    "Anxiety": float(emotion[2])
+                })
+
+            avg_reward = total_reward / 10
+            avg_err = total_weight_err / 10
+            avg_time = total_time / 10
+
+            print(f"✅ {cfg['name']} 平均测试奖励: {avg_reward:.2f}, 平均误差: {avg_err:.2f}g, 平均时间: {avg_time:.2f}s")
+            f.write(f"\n✅ Avg Test Result for {cfg['name']}: "
+                    f"Reward = {avg_reward:.2f}, WeightErr = {avg_err:.2f}g, Time = {avg_time:.2f}s\n")
+
+            results.append((cfg['name'], avg_reward, avg_err, avg_time))
+
+        # 保存每个variant的详细CSV
+        df_detail = pd.DataFrame(results_detail)
+        df_detail.to_csv(f"analysis_outputs/exp4/test_results_{algo}_{key}.csv", index=False, encoding="utf-8-sig")
+
+    # 汇总所有Condition的结果
+    result_file = f"logs/{algo}/experiment4_summary.txt"
+    with open(result_file, "w", encoding="utf-8") as f:
+        f.write("Condition\tReward\tWeightErr(g)\tTime(s)\n")
+        for name, score, err, t in results:
+            f.write(f"{name}\t{score:.2f}\t{err:.2f}\t{t:.2f}\n")
+        print(f"\n📄 实验四({algo.upper()})最终结果写入: {result_file}")
+
 
 if __name__ == "__main__":
     # === 全局配置 ===
     device = 'cuda'
     train_mode = True        # ✅ True 开始训练，False 开始测试
-    experiment_id = 3        # ✅ 设置为 1、2、3、4 选择实验组
+    experiment_id = 4        # ✅ 设置为 1、2、3、4 选择实验组
     # selected_algo = 'er_ddpg'  # 实验3、4专用
     episodes = 5
     max_steps = 50
@@ -447,10 +690,10 @@ if __name__ == "__main__":
         for group, algo, mode, reward in results:
             print(f"[Group: {group} | Algo: {algo.upper()} | Mode: {mode}] → AvgTestReward: {reward:.2f}")
 
-    # # === 实验二：分阶段预训练结构对比 ===
-    # elif experiment_id == 2:
-    #     print("\n=== Running Multi-Stage Pretraining Evaluation ===")
-    #     run_experiment_2(device=device, train=train_mode, use_off_sim=use_offline_sim)
+    # === 实验二：分阶段预训练结构对比 ===
+    elif experiment_id == 2:
+        print("\n=== Running Multi-Stage Pretraining Evaluation ===")
+        run_experiment_2(device=device, train=train_mode, use_off_sim=use_offline_sim)
 
     # # === 实验三：强化学习算法对比 ===
     # elif experiment_id == 3:
@@ -497,22 +740,22 @@ if __name__ == "__main__":
         for algo, reward in results:
             print(f"[{algo.upper()}] 平均测试奖励: {reward:.2f}")
 
-    # # === 实验四：多工况对比实验 ===
-    # elif experiment_id == 4:
-    #     print(f"\n=== Running Multi-Condition Comparison Experiment ===")
-    #
-    #     # 选择要跑的算法
-    #     algo_list = ['emotion_sac']  # 可以任选
-    #
-    #     for algo in algo_list:
-    #         print(f"\n=== 🚀 Running {algo.upper()} for Multi-Condition ===")
-    #         run_experiment_4(
-    #             train=True,  # True=训练+测试，False=只测试
-    #             episodes=episodes,
-    #             max_steps=max_steps,
-    #             device=device,
-    #             algo=algo  # ✅ 传入指定算法
-    #         )
+    # === 实验四：多工况对比实验 ===
+    elif experiment_id == 4:
+        print(f"\n=== Running Multi-Condition Comparison Experiment ===")
+
+        # 选择要跑的算法
+        algo_list = ['emotion_sac']  # 可以任选
+
+        for algo in algo_list:
+            print(f"\n=== 🚀 Running {algo.upper()} for Multi-Condition ===")
+            run_experiment_4(
+                train=True,  # True=训练+测试，False=只测试
+                episodes=episodes,
+                max_steps=max_steps,
+                device=device,
+                algo=algo  # ✅ 传入指定算法
+            )
 
     else:
         print("❌ Unsupported experiment ID. Please set experiment_id = 1, 2, 3, or 4.")
