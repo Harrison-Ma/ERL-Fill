@@ -5,7 +5,6 @@ import numpy as np
 import random
 import collections
 import os
-import os
 import shutil
 import logging
 from tqdm import tqdm
