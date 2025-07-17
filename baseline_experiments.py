@@ -1,4 +1,23 @@
 from DifferentModules.Fuzzy_PID_agent import FuzzyControllerAgent
+from DifferentModules.sac_agent import SACAgent
+from DifferentModules.ddpg_agent import DDPGAgent
+from EmotionModule import EmotionModuleNone
+from DifferentModules.td3_agent import TD3Agent
+from DifferentModules.ERL_Fill_agent import EmotionSACAgent
+from DifferentModules.td3_bc_agent import TD3BCAgent
+from DifferentModules.ppo_agent import PPOAgent
+from DifferentModules.cql_agent import CQLAgent
+from DifferentModules.PPOL import PPOLagrangian
+from DifferentModules.rls_pidagent import RLS_PIDAgent
+from DifferentModules.ddpg_agent import train_ddpg
+from DifferentModules.td3_agent import train_td3
+from DifferentModules.td3_bc_agent import train_td3_bc
+from DifferentModules.ERL_Fill_agent import train_emotion_sac
+from DifferentModules.ppo_agent import train_ppo
+from DifferentModules.sac_agent import train_sac
+from DifferentModules.cql_agent import train_cql
+from DifferentModules.PPOL import train_ppo_lagrangian
+from DifferentModules.rls_pidagent import train_rls_pid
 
 # =========================
 # Part 1: Testing Utilities
@@ -93,8 +112,6 @@ def build_ddpg_agent(env, device):
     Returns:
         agent: An instance of DDPGAgent with EmotionModuleNone attached.
     """
-    from DifferentModules.ddpg_agent import DDPGAgent
-    from EmotionModule import EmotionModuleNone
     agent = DDPGAgent(env, device=device, use_td_error=False)
     agent.emotion = EmotionModuleNone()
     return agent
@@ -111,7 +128,7 @@ def build_td3_agent(env, device):
     Returns:
         agent: An instance of TD3Agent.
     """
-    from DifferentModules.td3_agent import TD3Agent
+
     return TD3Agent(env, device=device)
 
 
@@ -126,7 +143,6 @@ def build_td3_bc_agent(env, device):
     Returns:
         agent: An instance of TD3BCAgent.
     """
-    from DifferentModules.td3_bc_agent import TD3BCAgent
     return TD3BCAgent(env, device=device)
 
 
@@ -141,7 +157,6 @@ def build_ppo_agent(env, device):
     Returns:
         agent: An instance of PPOAgent.
     """
-    from DifferentModules.ppo_agent import PPOAgent
     return PPOAgent(env, device=device)
 
 
@@ -156,7 +171,6 @@ def build_sac_agent(env, device):
     Returns:
         agent: An instance of SACAgent.
     """
-    from DifferentModules.sac_agent import SACAgent
     return SACAgent(env, device=device)
 
 
@@ -171,7 +185,6 @@ def build_cql_agent(env, device):
     Returns:
         agent: An instance of CQLAgent.
     """
-    from DifferentModules.cql_agent import CQLAgent
     return CQLAgent(env, device=device)
 
 
@@ -186,7 +199,6 @@ def build_ppol_agent(env, device):
     Returns:
         agent: An instance of PPOLagrangian.
     """
-    from DifferentModules.PPOL import PPOLagrangian
     return PPOLagrangian(env, device=device)
 
 
@@ -201,7 +213,6 @@ def build_rls_pid_agent(env, device):
     Returns:
         agent: An instance of RLS_PIDAgent.
     """
-    from DifferentModules.rls_pidagent import RLS_PIDAgent
     return RLS_PIDAgent(env, device=device)
 
 
@@ -217,9 +228,6 @@ def build_emotion_sac_agent(env, device, lambda_emo=0.05):
     Returns:
         agent: An instance of EmotionSACAgent with specified emotion coefficient.
     """
-    from DifferentModules.ERL_Fill_agent import EmotionSACAgent  # Import emotion-enhanced SAC agent
-    # from WeightDemo import EmotionModule  # Optional emotion module dependency
-
     agent = EmotionSACAgent(env, lambda_emo=lambda_emo, device=device)
     # agent.emotion = EmotionModule(device=device)  # Manually attach emotion module if needed
     return agent
@@ -254,7 +262,6 @@ def train_ddpg(env, agent, episodes=1000, max_steps=100, log_prefix="ddpg"):
     Returns:
         Training rewards history.
     """
-    from DifferentModules.ddpg_agent import train_ddpg
     return train_ddpg(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
 
 
@@ -264,7 +271,6 @@ def train_td3(env, agent, episodes=1000, max_steps=100, log_prefix="td3"):
 
     Args and returns same as train_ddpg.
     """
-    from DifferentModules.td3_agent import train_td3
     return train_td3(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
 
 
@@ -274,7 +280,6 @@ def train_td3_bc(env, agent, episodes=1000, max_steps=100, log_prefix="td3_bc"):
 
     Args and returns same as train_ddpg.
     """
-    from DifferentModules.td3_bc_agent import train_td3_bc
     return train_td3_bc(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
 
 
@@ -293,7 +298,6 @@ def train_emotion_sac(env, agent, episodes=1000, max_steps=100, log_prefix="emot
     Returns:
         Training rewards history.
     """
-    from DifferentModules.ERL_Fill_agent import train_emotion_sac
     return train_emotion_sac(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix, lambda_emo=lambda_emo)
 
 
@@ -303,7 +307,6 @@ def train_ppo(env, agent, episodes=1000, max_steps=100, log_prefix="ppo"):
 
     Args and returns same as train_ddpg.
     """
-    from DifferentModules.ppo_agent import train_ppo
     return train_ppo(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
 
 
@@ -316,7 +319,6 @@ def train_sac(env, agent, episodes=1000, max_steps=100, log_prefix="sac", pretra
 
     Other args and returns same as train_ddpg.
     """
-    from DifferentModules.sac_agent import train_sac
     return train_sac(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix, pretrain_path=pretrain_path)
 
 
@@ -326,7 +328,6 @@ def train_cql(env, agent, episodes=1000, max_steps=100, log_prefix="cql", pretra
 
     Args and returns same as train_sac.
     """
-    from DifferentModules.cql_agent import train_cql
     return train_cql(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix, pretrain_path=pretrain_path)
 
 
@@ -336,7 +337,6 @@ def train_ppol(env, agent, episodes=1000, max_steps=100, log_prefix="ppol", pret
 
     Args and returns same as train_sac.
     """
-    from DifferentModules.PPOL import train_ppo_lagrangian
     return train_ppo_lagrangian(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix, pretrain_path=pretrain_path)
 
 
@@ -346,7 +346,6 @@ def train_rls_pid(env, agent, episodes=1000, max_steps=100, log_prefix="rls_pid"
 
     Args and returns same as train_sac.
     """
-    from DifferentModules.rls_pidagent import train_rls_pid
     return train_rls_pid(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix, pretrain_path=pretrain_path)
 
 
