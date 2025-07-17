@@ -198,3 +198,4 @@ class EmotionModuleNone:
 
     def get_emotion(self):
         return self.current_emotion.copy()
+
