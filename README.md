@@ -1,3 +1,5 @@
+[English](README.md) | [中文](README_zh.md)
+
 # ERL-Fill
 
 **ERL-Fill** is an Emotion-Driven Reinforcement Learning framework for high-precision gas–solid flow filling control. It integrates multimodal perception, transformer-based emotion modeling, staged pretraining, and reward shaping to achieve adaptive, high-accuracy performance across dynamic industrial conditions.
@@ -14,35 +16,38 @@
 
 ```bash
 .
-├── rl-psa_v1.0/                # Main training framework
-│   ├── agents/                 # Reinforcement learning agents
-│   ├── envs/                   # Gas–solid filling environments
-│   ├── DifferentModule/        # Emotion adapters, buffers, loggers, etc.
-│   ├── experiment_runner.py    # Main experiment launcher
-│   └── config.py               # Global settings
-├── saved_models/              # Model checkpoints
-├── runs/                      # TensorBoard logs
-├── logs/                      # Training logs
-└── README.md
+├── baseline_experiments.py         # Baseline experiment script
+├── ddpg_emotion_agent.pth          # Pretrained model weights
+├── EmotionModule.py                # Emotion module
+├── experiment_runner.py            # Main experiment entry
+├── MutiConditionEnv.py             # Multi-condition environment
+├── VirtualWeightController.py      # Virtual weight controller
+├── WeightEnv.py                    # Weight environment
+├── requirements.txt                # Dependency list
+├── README.md
+├── README_zh.md                    # Chinese documentation
+├── DifferentModules/               # Emotion adapters, buffers, loggers, etc.
+├── components/                     # Component modules
+├── configs/                        # Configuration files
+├── CommonInterface/                # Common interfaces
+├── analysis_outputs/               # Analysis outputs
+├── logs/                           # Training logs
+├── runs/                           # TensorBoard logs
+├── saved_models/                   # Model checkpoints
+├── __pycache__/                    # Python cache files
 ```
 
 ## ⚙️ Dependencies
 
 ```bash
-Python ≥ 3.8
-
-PyTorch ≥ 1.12
-
-TensorBoard
-
+Python >= 3.8
+PyTorch >= 1.12
 gym
-
 tqdm
-
 numpy
-
-
-
+matplotlib
+scikit-learn
+tensorboard
 ```
 
 Install via:
@@ -50,6 +55,7 @@ Install via:
 ```bash
 pip install -r requirements.txt
 ```
+
 ## 🚀 Getting Started
 Example training (ER-DDPG baseline):
 
