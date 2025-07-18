@@ -9,26 +9,13 @@ from CommonInterface.modbus_slave import modbus_slave_client
 from VirtualWeightController import VirtualWeightController
 from collections import deque
 
-
-# === Initialize logging system ===
-os.makedirs("logs", exist_ok=True)  # Create a 'logs' directory if it does not exist
-
-# Configure global logging to file
-logging.basicConfig(
-    filename='logs/training_all.log',  # Log file path
-    filemode='w',                      # Overwrite log file on each run
-    level=logging.INFO,               # Logging level (INFO and above)
-    format='%(asctime)s - %(levelname)s - %(message)s'  # Log message format
-)
-
-logger = logging.getLogger()  # Get the root logger instance
+from CommonInterface.Logger import init_logger
 
 # === Detect platform and set default serial port name ===
 if platform.system() == 'Windows':
     port_name = 'COM4'  # Default COM port for Windows
 else:
     port_name = '/dev/ttyUSB0'  # Default USB serial port for Unix/Linux
-
 
 # Environment definition (fixed), default target is 25kg
 class WeightEnv:

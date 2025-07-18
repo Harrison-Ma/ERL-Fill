@@ -370,7 +370,7 @@ class SimpleEmotionSACAgent:
         self.policy.eval()
 
 
-def train_simple_sac(env, agent, episodes=1000, max_steps=500, log_prefix="simple_sac_exp", model_path=None, pretrain_path=None):
+def train_simple_sac(env, agent, episodes=1000, max_steps=500, log_prefix=None, model_path=None, pretrain_path=None, logger=None):
     """
     Trains a Soft Actor-Critic (SAC) agent with an optional emotional module in a given environment.
 
@@ -392,7 +392,7 @@ def train_simple_sac(env, agent, episodes=1000, max_steps=500, log_prefix="simpl
 
     # === Setup logging and output paths ===
     tb_log_dir = f"runs/{log_prefix}"  # Directory for TensorBoard logs
-    log_file_path = f"logs/sac_training_{log_prefix}.log"  # File path for logging training progress
+    log_file_path = f"logs/{log_prefix}.log"  # File path for logging training progress
     model_dir = os.path.join("saved_models", log_prefix)  # Directory to save model checkpoints
     os.makedirs(model_dir, exist_ok=True)
 
@@ -400,15 +400,15 @@ def train_simple_sac(env, agent, episodes=1000, max_steps=500, log_prefix="simpl
     if model_path is None:
         model_path = os.path.join(model_dir, f"{log_prefix}_ep0000.pth")
 
-    # === Configure logger ===
-    logger = logging.getLogger(f"sac_logger_{log_prefix}")
-    logger.setLevel(logging.INFO)
-    logger.propagate = False
-    if not logger.handlers:
-        fh = logging.FileHandler(log_file_path, mode='w', encoding='utf-8')
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-        fh.setFormatter(formatter)
-        logger.addHandler(fh)
+    # # === Configure logger ===
+    # logger = logging.getLogger(f"sac_logger_{log_prefix}")
+    # logger.setLevel(logging.INFO)
+    # logger.propagate = False
+    # if not logger.handlers:
+    #     fh = logging.FileHandler(log_file_path, mode='w', encoding='utf-8')
+    #     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    #     fh.setFormatter(formatter)
+    #     logger.addHandler(fh)
 
     # Remove previous TensorBoard logs if they exist
     if os.path.exists(tb_log_dir):
@@ -473,7 +473,7 @@ def train_simple_sac(env, agent, episodes=1000, max_steps=500, log_prefix="simpl
 
             # End episode early if done
             if done:
-                print(f"✔️ Episode {ep} finished early at step {step}")
+                print(f"Episode {ep} finished early at step {step}")
                 break
 
         # === End of episode logging ===
@@ -499,7 +499,7 @@ def train_simple_sac(env, agent, episodes=1000, max_steps=500, log_prefix="simpl
 
     # === Save final model ===
     agent.save(final_model_path)
-    logger.info(f"✅ Final model saved at {final_model_path}")
+    logger.info(f"Final model saved at {final_model_path}")
     writer.close()
 
     return rewards

@@ -310,7 +310,7 @@ def train_ppo(env, agent, episodes=1000, max_steps=100, log_prefix="ppo"):
     return train_ppo(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
 
 
-def train_sac(env, agent, episodes=1000, max_steps=100, log_prefix="sac", pretrain_path=None):
+def train_sac(env, agent, episodes=1000, max_steps=100, log_prefix="sac", pretrain_path=None, logger=None):
     """
     Train a SAC agent, optionally with pretrained weights.
 
@@ -319,7 +319,7 @@ def train_sac(env, agent, episodes=1000, max_steps=100, log_prefix="sac", pretra
 
     Other args and returns same as train_ddpg.
     """
-    return train_sac(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix, pretrain_path=pretrain_path)
+    return train_sac(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix, pretrain_path=pretrain_path, logger=None)
 
 
 def train_cql(env, agent, episodes=1000, max_steps=100, log_prefix="cql", pretrain_path=None):

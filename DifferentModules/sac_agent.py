@@ -9,7 +9,6 @@ import torch
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-import logging
 
 
 class GaussianPolicy(nn.Module):
@@ -306,19 +305,8 @@ class SACAgent:
         self.policy.eval()
 
 
-# Logging configuration
-logger = logging.getLogger(__name__)
-os.makedirs("logs", exist_ok=True)
-logging.basicConfig(
-    filename="logs/sac_training.log",
-    filemode="w",
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
-
-
 def train_sac(env, agent, episodes=1000, max_steps=500, log_prefix="simple_sac_exp",
-              model_path=None, pretrain_path=None):
+              model_path=None, pretrain_path=None, logger=None):
     """
     Train a Soft Actor-Critic (SAC) agent in a given environment.
 
@@ -340,23 +328,13 @@ def train_sac(env, agent, episodes=1000, max_steps=500, log_prefix="simple_sac_e
 
     # Set up log and model directories
     tb_log_dir = f"runs/{log_prefix}"
-    log_file_path = f"logs/sac_training_{log_prefix}.log"
+    log_file_path = f"logs/{log_prefix}.log"
     model_dir = os.path.join("saved_models", log_prefix)
     os.makedirs(model_dir, exist_ok=True)
     final_model_path = os.path.join(model_dir, f"{log_prefix}_final.pth")
 
     if model_path is None:
         model_path = os.path.join(model_dir, f"{log_prefix}_ep0000.pth")
-
-    # Logger setup
-    logger = logging.getLogger(f"sac_logger_{log_prefix}")
-    logger.setLevel(logging.INFO)
-    logger.propagate = False
-    if not logger.handlers:
-        fh = logging.FileHandler(log_file_path, mode='w', encoding='utf-8')
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-        fh.setFormatter(formatter)
-        logger.addHandler(fh)
 
     # Remove existing TensorBoard logs
     if os.path.exists(tb_log_dir):
@@ -451,7 +429,7 @@ def train_sac(env, agent, episodes=1000, max_steps=500, log_prefix="simple_sac_e
 
     # Save final model
     agent.save(final_model_path)
-    logger.info(f"✅ Final model saved to {final_model_path}")
+    logger.info(f"Final model saved to {log_prefix}")
     writer.close()
 
     return rewards

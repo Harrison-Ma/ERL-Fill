@@ -361,11 +361,11 @@ class TD3Agent:
         return self.select_action(state, noise_scale=noise)
 
 
-# Logging configuration
-logger = logging.getLogger(__name__)
-os.makedirs("logs", exist_ok=True)
-logging.basicConfig(filename='logs/td3_training.log', filemode='w',
-                    level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# # Logging configuration
+# logger = logging.getLogger(__name__)
+# os.makedirs("logs", exist_ok=True)
+# logging.basicConfig(filename='logs/td3_training.log', filemode='w',
+#                     level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 def train_td3(env, agent, episodes=1000, max_steps=500, log_prefix="td3_exp", pretrain_path=None):
@@ -388,8 +388,8 @@ def train_td3(env, agent, episodes=1000, max_steps=500, log_prefix="td3_exp", pr
     global_step = 0
 
     # === Set up directories for TensorBoard logs and saved models ===
-    tb_log_dir = f"runs/td3/{log_prefix}"
-    saved_model_dir = f"saved_models/td3/{log_prefix}"
+    tb_log_dir = f"runs/{log_prefix}"
+    saved_model_dir = f"saved_models/{log_prefix}"
     os.makedirs(tb_log_dir, exist_ok=True)
     os.makedirs(saved_model_dir, exist_ok=True)
 
@@ -399,8 +399,8 @@ def train_td3(env, agent, episodes=1000, max_steps=500, log_prefix="td3_exp", pr
     writer = SummaryWriter(log_dir=tb_log_dir)
 
     # === Setup dedicated logger for this training run ===
-    log_file = f"logs/td3_training_{log_prefix}.log"
-    logger_td3 = logging.getLogger(f"td3_logger_{log_prefix}")
+    log_file = f"logs/{log_prefix}.log"
+    logger_td3 = logging.getLogger(f"{log_prefix}")
     logger_td3.setLevel(logging.INFO)
     logger_td3.propagate = False
     if not logger_td3.handlers:

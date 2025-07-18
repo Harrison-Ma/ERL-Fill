@@ -486,36 +486,24 @@ class EmotionSACAgent:
             print(f"[Info] Current emotion module [{type(self.emotion).__name__}] has no transformer. Skip loading.")
 
 
-# Logging configuration
-logger = logging.getLogger(__name__)
-os.makedirs("logs", exist_ok=True)
-logging.basicConfig(filename="logs/sac_training_transformer.log", filemode="w",
-                    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+# # Logging configuration
+# logger = logging.getLogger(__name__)
+# os.makedirs("logs", exist_ok=True)
+# logging.basicConfig(filename="logs/sac_training_transformer.log", filemode="w",
+#                     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 
 def train_erl_fill(env, agent, episodes=1000, max_steps=500, log_prefix="emotion_sac", model_path=None, logger=None,
-                      lambda_emo=0.05):
+                   lambda_emo=0.05):
     """
     Train an emotion-augmented Soft Actor-Critic (SAC) agent on a given environment.
-
-    Args:
-        env: The environment to train on.
-        agent: The SAC agent with emotion mechanism.
-        episodes (int): Number of training episodes.
-        max_steps (int): Maximum steps per episode.
-        log_prefix (str): Prefix for log directories and files.
-        model_path (str, optional): Path to save the final model.
-        logger (logging.Logger, optional): Logger instance. If None, initialize a default logger.
-        lambda_emo (float): Weighting factor for emotion regularization in the loss.
-
-    Returns:
-        list: List of total rewards per episode.
     """
     if logger is None:
         logger = init_logger(log_prefix=log_prefix)
 
     agent.lambda_emo = lambda_emo
-    print("agent.lambda_emo", agent.lambda_emo)
+    if logger: logger.info(f"λ_emo set to {agent.lambda_emo:.3f}")
+
     rewards = []
     env.max_steps = max_steps
     global_step = 0
@@ -524,12 +512,10 @@ def train_erl_fill(env, agent, episodes=1000, max_steps=500, log_prefix="emotion
     saved_model_dir = f"saved_models/{log_prefix}"
     os.makedirs(saved_model_dir, exist_ok=True)
 
-    # Clear TensorBoard logs if exist to start fresh
     if os.path.exists(tb_log_dir):
         shutil.rmtree(tb_log_dir)
     writer = SummaryWriter(log_dir=tb_log_dir)
 
-    # Default model save path if none provided
     if model_path is None:
         model_path = os.path.join(saved_model_dir, f"{log_prefix}_final.pth")
 
@@ -547,10 +533,8 @@ def train_erl_fill(env, agent, episodes=1000, max_steps=500, log_prefix="emotion
             action = agent.act(state)
             next_state, reward, done, info = env.step(action)
 
-            # Update the agent's emotion state with current reward and action
             agent.emotion.update(reward, action)
 
-            # Store experience and update agent
             agent.remember(state, action, reward, next_state, float(done))
             update_info = agent.update()
 
@@ -560,7 +544,6 @@ def train_erl_fill(env, agent, episodes=1000, max_steps=500, log_prefix="emotion
             ep_time += info.get("total_time", 0.0)
             average_step += 1
 
-            # Log scalar metrics for TensorBoard
             writer.add_scalar("Reward/Step", reward, global_step)
             writer.add_scalar("Metric/Error", info.get("weight_error", 0.0), global_step)
             writer.add_scalar("Metric/Time", info.get("total_time", 0.0), global_step)
@@ -575,25 +558,24 @@ def train_erl_fill(env, agent, episodes=1000, max_steps=500, log_prefix="emotion
                 writer.add_scalar("Loss/Actor", update_info.get("policy_loss", 0.0), global_step)
                 writer.add_scalar("Loss/Critic", update_info.get("q1_loss", 0.0), global_step)
 
-            # Log info periodically during the episode
             if step % (max_steps // 10) == 0 or step == max_steps - 1:
-                logger.info(
-                    f"Ep {ep:03d} Step {step:03d} | R: {reward:.2f} | Loss: {update_info} | "
-                    f"E: {np.round(emotion_state, 2)}"
-                )
+                if logger:
+                    logger.info(
+                        f"Ep {ep:03d} Step {step:03d} | R: {reward:.2f} | Loss: {update_info} | "
+                        f"E: {np.round(emotion_state, 2)}"
+                    )
 
             global_step += 1
             if done:
-                print(f"✔️ Episode {ep} finished early at step {step}")
+                if logger:
+                    logger.info(f"✔️ Episode {ep} finished early at step {step}")
                 break
 
-        # Record total episode reward
         rewards.append(ep_reward)
         writer.add_scalar("Reward/Episode", ep_reward, ep)
         writer.add_scalar("Reward/Episode(average)", ep_reward / average_step, ep)
         writer.add_scalar("Metric/Weight", info.get("final_weight", 0.0), ep)
 
-        # Calculate emotion fluctuation compared to previous episode
         if ep > 0:
             emotion_fluctuation = np.linalg.norm(np.array(emotion_state) - np.array(prev_emotion_state))
         else:
@@ -604,42 +586,42 @@ def train_erl_fill(env, agent, episodes=1000, max_steps=500, log_prefix="emotion
         if update_info:
             writer.add_scalar("Loss/EmotionReg", update_info.get("emo_reg", 0.0), global_step)
 
-        # Log action details
         for key, val in info.get("action", {}).items():
             writer.add_scalar(f"Action/{key}", val, ep)
 
         actor_loss = update_info.get("policy_loss", "-") if update_info else "-"
         critic_loss = update_info.get("q1_loss", "-") if update_info else "-"
-        logger.info(
-            f"[Episode {ep:04d}] "
-            f"TotalReward: {ep_reward:.2f} | AvgReward: {ep_reward / average_step:.2f} | "
-            f"WeightErr: {info.get('weight_error', 0.0):.2f}g | Time: {info.get('total_time', 0.0):.2f}s | "
-            f"Emotion: [Curi: {emotion_state[0]:.2f}, Cons: {emotion_state[1]:.2f}, Anx: {emotion_state[2]:.2f}] | "
-            f"ActorLoss: {actor_loss} | CriticLoss: {critic_loss}"
-        )
+        if logger:
+            logger.info(
+                f"[Episode {ep:04d}] "
+                f"TotalReward: {ep_reward:.2f} | AvgReward: {ep_reward / average_step:.2f} | "
+                f"WeightErr: {info.get('weight_error', 0.0):.2f}g | Time: {info.get('total_time', 0.0):.2f}s | "
+                f"Emotion: [Curi: {emotion_state[0]:.2f}, Cons: {emotion_state[1]:.2f}, Anx: {emotion_state[2]:.2f}] | "
+                f"ActorLoss: {actor_loss} | CriticLoss: {critic_loss}"
+            )
 
-        # Log time taken every 100 episodes
         if ep > 0 and ep % 100 == 0:
             duration_100 = time.time() - start_100
-            logger.info(
-                f"⏱️ Episodes {ep - 100}~{ep} took {duration_100:.2f} seconds, avg {duration_100 / 100:.2f} seconds/episode")
+            if logger:
+                logger.info(
+                    f"⏱️ Episodes {ep - 100}~{ep} took {duration_100:.2f} seconds, "
+                    f"avg {duration_100 / 100:.2f} seconds/episode"
+                )
             start_100 = time.time()
 
-        # Save checkpoint every 20 episodes or at last episode
         if ep % 20 == 0 or ep == episodes - 1:
             ckpt_path = os.path.join(saved_model_dir, f"{log_prefix}_ep{ep:04d}.pth")
             agent.save(ckpt_path)
-            logger.info(f"[Episode {ep}] Model checkpoint saved at {ckpt_path}")
+            if logger:
+                logger.info(f"[Episode {ep}] Model checkpoint saved at {ckpt_path}")
 
         agent.train_step += 1
 
-        # Calculate and log action entropy for exploration measure
         with torch.no_grad():
             state_tensor = torch.FloatTensor(state).unsqueeze(0).to(agent.device)
             emotion_tensor = torch.FloatTensor(agent.emotion.get_emotion()).unsqueeze(0).to(agent.device)
             action_entropy = agent.policy.get_action_entropy(state_tensor, emotion_tensor)
 
-        # Quantitative metrics evaluation:
         writer.add_scalar("Metrics/AvgReward", ep_reward / average_step, ep)
         writer.add_scalar("Metrics/AvgError", ep_err / average_step, ep)
         writer.add_scalar("Metrics/CompletionTime", ep_time / average_step, ep)
@@ -657,16 +639,13 @@ def train_erl_fill(env, agent, episodes=1000, max_steps=500, log_prefix="emotion
             "EmotionFluctuation": emotion_fluctuation
         })
 
-    # Save final model
     agent.save(model_path)
-    print(f"✅ Final model saved at {model_path}")
-    logger.info(f"✅ Final model saved at {model_path}")
-
+    if logger: logger.info(f"✅ Final model saved at {model_path}")
     writer.close()
 
-    # Save all collected metrics to CSV for later analysis
     import pandas as pd
     metrics_df = pd.DataFrame(metrics_summary)
     metrics_df.to_csv(f"{saved_model_dir}/{log_prefix}_metrics_summary_{lambda_emo}.csv", index=False)
 
     return rewards
+

@@ -327,8 +327,8 @@ def train_ppo(env, agent, episodes=1000, max_steps=500, log_prefix="ppo_exp", mo
     global_step = 0
 
     # === Setup logging and model saving directories ===
-    tb_log_dir = f"runs/ppo/{log_prefix}"
-    saved_model_dir = f"saved_models/ppo/{log_prefix}"
+    tb_log_dir = f"runs/{log_prefix}"
+    saved_model_dir = f"saved_models/{log_prefix}"
     os.makedirs(tb_log_dir, exist_ok=True)
     os.makedirs(saved_model_dir, exist_ok=True)
 

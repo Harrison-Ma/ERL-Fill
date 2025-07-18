@@ -22,9 +22,8 @@ def run_experiment_1(
     emotion_modes=['none', 'simple', 'transformer'],
     algo_list=['ddpg', 'td3', 'sac'],
     train=True,
-    experiment_id=1,
     lambda_emo=0.1,
-    log_prefix="experiment",
+    log_prefix=None,
     logger=None
 ):
     """
@@ -48,11 +47,7 @@ def run_experiment_1(
             else:
                 raise ValueError(f"Unsupported emotion mode: {mode}")
 
-            if algo == 'ddpg':
-                agent = DDPGAgent(env, device=device)
-            elif algo == 'td3':
-                agent = TD3Agent(env, device=device)
-            elif algo == 'sac':
+            if algo == 'sac':
                 if mode == 'none':
                     agent = SACAgent(env, device=device)
                 elif mode == 'simple':
@@ -66,10 +61,9 @@ def run_experiment_1(
                 agent.emotion = emotion_module
             env.attach_agent(agent)
 
-            model_dir = f"saved_models/{algo}_exp2_emotion_compare" if experiment_id == 2 else f"saved_models/{algo}_emotion_compare"
+            model_dir = f"saved_models/exp1_{algo}_emotion_compare"
             os.makedirs(model_dir, exist_ok=True)
             model_path = os.path.join(model_dir, f"{algo}_{mode}_{lambda_emo}.pth")
-            log_prefix = f"exp1_{algo}_emotion_{mode}_{lambda_emo}"
 
             if env_mode == 'sim':
                 if logger: logger.info("No pretrained weights loaded. Training from scratch.")
@@ -92,34 +86,34 @@ def run_experiment_1(
                 if logger: logger.info(f"Loaded pretrained weights from: {pretrain_path}")
 
             if train:
-                if logger: logger.info(f"🚀 Start training [{algo.upper()}] with emotion mode [{mode}]")
+                if logger: logger.info(f"Start training [{algo.upper()}] with emotion mode [{mode}]")
 
                 if algo == 'ddpg':
                     train_ddpg(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
                 elif algo == 'sac':
                     if mode == 'none':
-                        train_sac(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
+                        train_sac(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix,logger=logger)
                     elif mode == "simple":
-                        train_simple_sac(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
+                        train_simple_sac(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix,logger=logger)
                     else:
                         train_erl_fill(env, agent, episodes=episodes, max_steps=max_steps,
-                                          log_prefix=log_prefix, lambda_emo=lambda_emo)
+                                          log_prefix=log_prefix, lambda_emo=lambda_emo,logger=logger)
 
                 agent.save(model_path)
-                if logger: logger.info(f"✅ Training complete. Model saved to {model_path}")
+                if logger: logger.info(f"Training complete. Model saved to {model_path}")
 
             else:
-                if logger: logger.info(f"🔍 Start testing [{algo.upper()}] with emotion mode [{mode}]")
+                if logger: logger.info(f"Start testing [{algo.upper()}] with emotion mode [{mode}]")
 
                 if not os.path.exists(model_path):
-                    if logger: logger.info(f"❌ Model not found: {model_path}. Skip.")
+                    if logger: logger.info(f"Model not found: {model_path}. Skip.")
                     continue
 
                 agent.load(model_path)
 
                 total_reward = 0
                 test_episodes = 10
-                test_log_dir = os.path.join("logs", f"test_result_{algo}_{mode}.log")
+                test_log_dir = os.path.join("logs", f"exp1_result_{algo}_{mode}_test.log")
                 os.makedirs("logs", exist_ok=True)
 
                 with open(test_log_dir, "w", encoding="utf-8") as f_log:
@@ -165,33 +159,30 @@ def run_experiment_1(
                             f"Emotion: {cur_emotion}"
                         )
 
-                        if logger: logger.info(f"🎯 Test Episode {ep+1}: Reward = {episode_reward:.2f}")
+                        if logger: logger.info(f" Test Episode {ep+1}: Reward = {episode_reward:.2f}")
                         f_log.write(log_str + "\n")
 
                     avg_reward = total_reward / test_episodes
-                    f_log.write(f"\n✅ Avg Test Reward: {avg_reward:.2f}\n")
-                    if logger: logger.info(f"✅ Avg Test Reward for {algo.upper()} [{mode}] = {avg_reward:.2f}")
+                    f_log.write(f"\n Avg Test Reward: {avg_reward:.2f}")
+                    if logger: logger.info(f" Avg Test Reward for {algo.upper()} [{mode}] = {avg_reward:.2f}")
 
                 results.append((algo, mode, avg_reward))
 
     if not train:
-        if logger: logger.info("\n=== 🎯 Final Results: Algo × Emotion Mode ===")
+        if logger: logger.info("Final Results: Algo × Emotion Mode ===")
         for algo, mode, reward in results:
             if logger: logger.info(f"[{algo.upper()} - {mode}] Avg Test Reward: {reward:.2f}")
 
     return results
 
 
-def run_experiment_2(algo='er_ddpg', train=True, episodes=1000, max_steps=100, device='cuda'):
-    # from WeightDemo import WeightEnv
+def run_experiment_2(algo='sac', train=True, episodes=1000, max_steps=100, device='cuda'):
     from baseline_experiments import (
-        # build_er_ddpg_agent,
         build_ddpg_agent,
         build_td3_agent,
         build_ppo_agent,
         build_sac_agent,
         build_td3_bc_agent, build_cql_agent,
-        # build_emotion_td3_agent,
         build_emotion_sac_agent,
         build_fuzzy_agent,
         build_ppol_agent, build_rls_pid_agent
@@ -203,13 +194,11 @@ def run_experiment_2(algo='er_ddpg', train=True, episodes=1000, max_steps=100, d
     from DifferentModules.rls_pidagent import train_rls_pid
     from DifferentModules.ppo_agent import train_ppo
     from DifferentModules.sac_agent import train_sac
-    # from Emotion_TD3 import train_emotion_td3
     import os
     import numpy as np
 
     env = WeightEnv()
     algo_builders = {
-        # 'er_ddpg': build_er_ddpg_agent,
         'ddpg': build_ddpg_agent,
         'td3': build_td3_agent,
         'td3_bc': build_td3_bc_agent,
@@ -218,7 +207,6 @@ def run_experiment_2(algo='er_ddpg', train=True, episodes=1000, max_steps=100, d
         'cql': build_cql_agent,
         'ppol': build_ppol_agent,
         'rls_pid': build_rls_pid_agent,
-        # 'emotion_td3': build_emotion_td3_agent,
         'emotion_sac': build_emotion_sac_agent,
         'fuzzy': build_fuzzy_agent  # ✅ 添加 fuzzy agent
     }
@@ -231,8 +219,8 @@ def run_experiment_2(algo='er_ddpg', train=True, episodes=1000, max_steps=100, d
     model_path = os.path.join(model_dir, f"{algo}_final.pth")
     log_prefix = f"exp3_{algo}"
 
-    if train and algo != 'fuzzy':  # 模糊控制不训练
-        print(f"�� Start training {algo.upper()}...")
+    if train and algo != 'fuzzy':
+        print(f"Start training {algo.upper()}...")
         if algo == 'ddpg':
             from DifferentModules.ddpg_agent import train_ddpg
             train_ddpg(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
@@ -252,7 +240,7 @@ def run_experiment_2(algo='er_ddpg', train=True, episodes=1000, max_steps=100, d
 
         elif algo == 'sac':
             train_sac(env=env, agent=agent, episodes=episodes, max_steps=max_steps,
-                      log_prefix=log_prefix, model_path=model_path)
+                      log_prefix=log_prefix, model_path=model_path,logger=logger)
 
         elif algo == 'cql':
             train_cql(env=env, agent=agent, episodes=episodes, max_steps=max_steps,
@@ -266,21 +254,17 @@ def run_experiment_2(algo='er_ddpg', train=True, episodes=1000, max_steps=100, d
             train_rls_pid(env=env, agent=agent, episodes=episodes, max_steps=max_steps,
                           log_prefix=log_prefix, model_path=model_path)
 
-        # elif algo == 'emotion_td3':
-        #     train_emotion_td3(env=env, agent=agent, episodes=episodes, max_steps=max_steps,
-        #                       log_prefix=log_prefix, model_path=model_path)
-
         elif algo == 'emotion_sac':
-            from DifferentModules.ERL_Fill_agent import train_emotion_sac
-            train_emotion_sac(env=env, agent=agent, episodes=episodes, max_steps=max_steps,
+            from DifferentModules.ERL_Fill_agent import train_erl_fill
+            train_erl_fill(env=env, agent=agent, episodes=episodes, max_steps=max_steps,
                               log_prefix=log_prefix, model_path=model_path)
         else:
             print("No such module")
 
-        print(f"✅ Training complete. Model saved at: {model_path}")
+        print(f"Training complete. Model saved at: {model_path}")
         avg_reward = 0
     else:
-        print(f"�� Start testing {algo.upper()}...")
+        print(f"Start testing {algo.upper()}...")
         if algo != 'fuzzy' and not os.path.exists(model_path):
             raise FileNotFoundError(f"❌ 模型文件不存在: {model_path}")
         test_episodes = 200
@@ -317,7 +301,6 @@ def run_experiment_2(algo='er_ddpg', train=True, episodes=1000, max_steps=100, d
                         else:
                             action = agent.act(state)
 
-                        # ✅ 修复 fuzzy 返回 dict 错误
                         if isinstance(action, dict):
                             action_dict = action
                         else:
@@ -338,7 +321,7 @@ def run_experiment_2(algo='er_ddpg', train=True, episodes=1000, max_steps=100, d
                         f"Time: {info['total_time']:.2f}s | "
                         f"SlowWeight: {slow_weight:.2f}g"
                     )
-                    print(f"�� Test Episode {ep + 1}: {episode_reward:.2f}")
+                    print(f"Test Episode {ep + 1}: {episode_reward:.2f}")
                     f_log.write(log_str + "\n")
 
                 except Exception as e:
@@ -349,7 +332,7 @@ def run_experiment_2(algo='er_ddpg', train=True, episodes=1000, max_steps=100, d
                 total_reward += episode_reward
 
             avg_reward = total_reward / test_episodes
-            summary = f"\n✅ Avg Test Reward for {algo.upper()}: {avg_reward:.2f}\n"
+            summary = f"\nAvg Test Reward for {algo.upper()}: {avg_reward:.2f}\n"
             print(summary)
             f_log.write(summary)
 
@@ -605,17 +588,15 @@ if __name__ == "__main__":
     # === 全局配置 ===
     device = 'cuda'
     train_mode = True        # ✅ True 开始训练，False 开始测试
-    experiment_id = 3        # ✅ 设置为 1、2、3、4 选择实验组
+    experiment_id = 1        # ✅ 设置为 1、2、3、4 选择实验组
     episodes = 5
     max_steps = 50
     test_episodes = 10
     use_offline_sim = 1 #1-采样离线仿真，0-采用板载仿真，2-真实系统训练
 
-
-
     # === 实验一：情感机制消融实验 ===
     if experiment_id == 1:
-        logger = init_logger(log_prefix="exp1", phase="train")
+        logger = init_logger()
 
         emotion_modes = ['none', 'simple', 'transformer']  # Baseline、Simple、Transformer
         algo_list = ['sac']  # 本实验只跑SAC
@@ -658,6 +639,9 @@ if __name__ == "__main__":
                 logger=logger
             )
 
+            # 初始化 logger（每组独立日志）
+            logger = init_logger(log_prefix=log_prefix, phase="test", to_console=True)
+
             # === 测试 ===
             test_results = run_experiment_1(
                 episodes=test_episodes,
@@ -679,7 +663,6 @@ if __name__ == "__main__":
     # === 实验二：强化学习算法对比实验 ===
     elif experiment_id == 2:
         print(f"\n=== Running Algorithm Comparison for All Methods ===")
-        # algo_list = ['er_ddpg', 'ddpg', 'td3','td3_bc','ppo', 'sac', 'cql', 'ppol', 'rls_pid', 'emotion_td3','emotion_sac', 'fuzzy']  # ✅ 包含模糊控制
         algo_list = ['td3','sac','ppo','ddpg','td3_bc','rls_pid', 'cql','emotion_sac', 'fuzzy']  # ✅ 包含模糊控制
         results = []
 
