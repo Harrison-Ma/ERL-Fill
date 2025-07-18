@@ -198,46 +198,8 @@ def run_experiment_1(
 
     return results
 
-def run_experiment_2(device='cuda', max_steps=100, train=True, use_off_sim=1):
-    # 预设阶段训练配置
-    experiment_configs = {
-        1: [{"env_mode": "sim",     "episodes": 5000, "log_prefix": "stage1_sim"}],
-        0: [{"env_mode": "onboard", "episodes": 500,  "log_prefix": "stage2_onboard"}],
-        2: [{"env_mode": "real",    "episodes": 100,  "log_prefix": "stage3_real"}],
-        3: [{"env_mode": "continue", "episodes": 5000, "log_prefix": "stage3_real"}]
-    }
 
-    stage_names = {1: "stage1", 0: "stage2", 2: "stage3", 3:"stage4"}
-
-    if use_off_sim not in experiment_configs:
-        print(f"❌ Invalid value for use_off_sim: {use_off_sim}. Must be 0, 1,  2 or 3.")
-        return
-
-    selected_stage = experiment_configs[use_off_sim]
-    stage_name = stage_names[use_off_sim]
-
-    print(f"\n🚀 Starting {stage_name.upper()} pretraining experiment...\n")
-
-    model_path = None  # 可复用权重路径
-
-    for i, cfg in enumerate(selected_stage):
-        print(f"▶️  Phase {i+1} | Mode: {cfg['env_mode']} | Episodes: {cfg['episodes']}")
-
-        model_path = run_experiment_1(
-            emotion_modes=['transformer'],
-            algo_list=['sac'],
-            episodes=cfg["episodes"],
-            max_steps=max_steps,
-            device=device,
-            env_mode=cfg["env_mode"],
-            train=train,
-            experiment_id=3,
-            lambda_emo = 0.05
-        )
-
-    print(f"✅ {stage_name.upper()} training complete. Final model saved at: {model_path}")
-
-def run_experiment_3(algo='er_ddpg', train=True, episodes=1000, max_steps=100, device='cuda'):
+def run_experiment_2(algo='er_ddpg', train=True, episodes=1000, max_steps=100, device='cuda'):
     # from WeightDemo import WeightEnv
     from baseline_experiments import (
         # build_er_ddpg_agent,
@@ -410,7 +372,7 @@ def run_experiment_3(algo='er_ddpg', train=True, episodes=1000, max_steps=100, d
 
     return model_path, avg_reward
 
-def run_experiment_4(train=True, episodes=1000, max_steps=100, device='cuda', algo='er_ddpg'):
+def run_experiment_3(train=True, episodes=1000, max_steps=100, device='cuda', algo='er_ddpg'):
     """
     实验四：多工况对比实验（ER-DDPG）
     """
@@ -616,23 +578,56 @@ def run_experiment_4(train=True, episodes=1000, max_steps=100, device='cuda', al
         print(f"\n📄 实验四({algo.upper()})最终结果写入: {result_file}")
 
 
+def run_experiment_4(device='cuda', max_steps=100, train=True, use_off_sim=1):
+    # 预设阶段训练配置
+    experiment_configs = {
+        1: [{"env_mode": "sim",     "episodes": 5000, "log_prefix": "stage1_sim"}],
+        0: [{"env_mode": "onboard", "episodes": 500,  "log_prefix": "stage2_onboard"}],
+        2: [{"env_mode": "real",    "episodes": 100,  "log_prefix": "stage3_real"}],
+        3: [{"env_mode": "continue", "episodes": 5000, "log_prefix": "stage3_real"}]
+    }
+
+    stage_names = {1: "stage1", 0: "stage2", 2: "stage3", 3:"stage4"}
+
+    if use_off_sim not in experiment_configs:
+        print(f"❌ Invalid value for use_off_sim: {use_off_sim}. Must be 0, 1,  2 or 3.")
+        return
+
+    selected_stage = experiment_configs[use_off_sim]
+    stage_name = stage_names[use_off_sim]
+
+    print(f"\n🚀 Starting {stage_name.upper()} pretraining experiment...\n")
+
+    model_path = None  # 可复用权重路径
+
+    for i, cfg in enumerate(selected_stage):
+        print(f"▶️  Phase {i+1} | Mode: {cfg['env_mode']} | Episodes: {cfg['episodes']}")
+
+        model_path = run_experiment_1(
+            emotion_modes=['transformer'],
+            algo_list=['sac'],
+            episodes=cfg["episodes"],
+            max_steps=max_steps,
+            device=device,
+            env_mode=cfg["env_mode"],
+            train=train,
+            experiment_id=3,
+            lambda_emo = 0.05
+        )
+
+    print(f"✅ {stage_name.upper()} training complete. Final model saved at: {model_path}")
+
 if __name__ == "__main__":
     # === 全局配置 ===
     device = 'cuda'
     train_mode = True        # ✅ True 开始训练，False 开始测试
-    experiment_id = 4        # ✅ 设置为 1、2、3、4 选择实验组
-    # selected_algo = 'er_ddpg'  # 实验3、4专用
+    experiment_id = 3        # ✅ 设置为 1、2、3、4 选择实验组
     episodes = 5
     max_steps = 50
     test_episodes = 10
-    # # selected_algo = 'ddpg'
-    # # selected_algo = 'td3'
-    # # selected_algo = 'ppo'
-    # selected_algo = 'sac'
     use_offline_sim = 1 #1-采样离线仿真，0-采用板载仿真，2-真实系统训练
 
-    # === 实验一：情感机制对照组 ===
-    # === 实验一：情感机制对照组（5组实验） ===
+    # === 实验一：情感机制消融实验（5组实验） ===
     if experiment_id == 1:
         emotion_modes = ['none', 'simple', 'transformer']  # Baseline、Simple、Transformer
         algo_list = ['sac']  # 本实验只跑SAC
@@ -690,36 +685,8 @@ if __name__ == "__main__":
         for group, algo, mode, reward in results:
             print(f"[Group: {group} | Algo: {algo.upper()} | Mode: {mode}] → AvgTestReward: {reward:.2f}")
 
-    # === 实验二：分阶段预训练结构对比 ===
+    # === 实验二：强化学习算法对比实验 ===
     elif experiment_id == 2:
-        print("\n=== Running Multi-Stage Pretraining Evaluation ===")
-        run_experiment_2(device=device, train=train_mode, use_off_sim=use_offline_sim)
-
-    # # === 实验三：强化学习算法对比 ===
-    # elif experiment_id == 3:
-    #     print(f"\n=== Running Algorithm Comparison for All Methods ===")
-    #     algo_list = ['er_ddpg', 'ddpg', 'td3', 'ppo', 'sac','emotion_td3','emotion_sac']
-    #     # algo_list = ['emotion_sac','sac']
-    #     # algo_list = ['emotion_sac']
-    #     results = []
-    #
-    #     for algo in algo_list:
-    #         print(f"\n>>> 🚀 Start {algo.upper()} Training & Testing")
-    #         model_path, test_reward = run_experiment_3(
-    #             algo=algo,
-    #             train=train_mode,
-    #             episodes=episodes,
-    #             max_steps=max_steps,
-    #             device=device
-    #         )
-    #         results.append((algo, test_reward))
-    #
-    #     print("\n=== ✅ 实验三结果对比 ===")
-    #     for algo, reward in results:
-    #         print(f"[{algo.upper()}] 平均测试奖励: {reward:.2f}")
-
-    # === 实验三：强化学习算法对比 ===
-    elif experiment_id == 3:
         print(f"\n=== Running Algorithm Comparison for All Methods ===")
         # algo_list = ['er_ddpg', 'ddpg', 'td3','td3_bc','ppo', 'sac', 'cql', 'ppol', 'rls_pid', 'emotion_td3','emotion_sac', 'fuzzy']  # ✅ 包含模糊控制
         algo_list = ['td3','sac','ppo','ddpg','td3_bc','rls_pid', 'cql','emotion_sac', 'fuzzy']  # ✅ 包含模糊控制
@@ -727,7 +694,7 @@ if __name__ == "__main__":
 
         for algo in algo_list:
             print(f"\n>>>  Start {algo.upper()} Training & Testing")
-            model_path, test_reward = run_experiment_3(
+            model_path, test_reward = run_experiment_2(
                 algo=algo,
                 train=train_mode,
                 episodes=episodes,
@@ -741,7 +708,7 @@ if __name__ == "__main__":
             print(f"[{algo.upper()}] 平均测试奖励: {reward:.2f}")
 
     # === 实验四：多工况对比实验 ===
-    elif experiment_id == 4:
+    elif experiment_id == 3:
         print(f"\n=== Running Multi-Condition Comparison Experiment ===")
 
         # 选择要跑的算法
@@ -749,13 +716,18 @@ if __name__ == "__main__":
 
         for algo in algo_list:
             print(f"\n=== 🚀 Running {algo.upper()} for Multi-Condition ===")
-            run_experiment_4(
+            run_experiment_3(
                 train=True,  # True=训练+测试，False=只测试
                 episodes=episodes,
                 max_steps=max_steps,
                 device=device,
                 algo=algo  # ✅ 传入指定算法
             )
+
+    # === 实验四：分阶段预训练实验 ===
+    elif experiment_id == 4:
+        print("\n=== Running Multi-Stage Pretraining Evaluation ===")
+        run_experiment_4(device=device, train=train_mode, use_off_sim=use_offline_sim)
 
     else:
         print("❌ Unsupported experiment ID. Please set experiment_id = 1, 2, 3, or 4.")
