@@ -102,7 +102,7 @@ def run_experiment_1(
                     elif mode == "simple":
                         train_simple_sac(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
                     else:
-                        train_emotion_sac(env, agent, episodes=episodes, max_steps=max_steps,
+                        train_erl_fill(env, agent, episodes=episodes, max_steps=max_steps,
                                           log_prefix=log_prefix, lambda_emo=lambda_emo)
 
                 agent.save(model_path)
