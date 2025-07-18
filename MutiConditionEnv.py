@@ -37,27 +37,27 @@ class WeightEnv:
 
         self.controller = VirtualWeightController()
 
-        self.episode_counter = 0  # Current batch number
-        self.step_counter = 0  # Current step in batch
+        self.episode_counter = 0  # Current episode number
+        self.step_counter = 0  # Current step in the episode
 
-        self.max_steps = 100  # Default max steps
+        self.max_steps = 100  # Maximum steps per episode
 
         self.recent_errors = deque(maxlen=int(self.max_steps/5))
         # Parameter ranges (lower and upper bounds)
         self.bounds = {
-            "fast_weight": (7000, 18000),# Fast feed rate range (g/s)
-            "medium_weight": (0, 1),    # Medium feed rate range (g/s)
-            "slow_weight": (24900, 25000),    # Slow feed rate range (g/s)
+            "fast_weight": (7000, 18000),  # Fast feed weight range (g)
+            "medium_weight": (0, 1),       # Medium feed weight range (g)
+            "slow_weight": (24900, 25000), # Slow feed weight range (g)
 
-            "fast_opening": (35, 75),        # Fast opening range (%)
+            "fast_opening": (35, 75),      # Fast opening range (%)
             "medium_opening": (3, 5),      # Medium opening range (%)
-            "slow_opening": (5, 20),          # Slow opening range (%)
+            "slow_opening": (5, 20),       # Slow opening range (%)
 
-            "fast_delay": (100, 300),         # Fast delay range (ms)
-            "medium_delay": (100, 200),       # Medium delay range (ms)
-            "slow_delay": (100, 200),         # Slow delay range (ms)
+            "fast_delay": (100, 300),      # Fast delay range (ms)
+            "medium_delay": (100, 200),    # Medium delay range (ms)
+            "slow_delay": (100, 200),      # Slow delay range (ms)
 
-            "unload_delay": (300, 500)         # Unload time range (ms)
+            "unload_delay": (300, 500)     # Unload delay range (ms)
         }
         self._update_scaling_params()
 
