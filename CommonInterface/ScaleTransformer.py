@@ -1,13 +1,19 @@
 def reset_actor_scaling(agent, new_bounds):
     """
-    重置 Actor 和 Actor-Target 的参数缩放信息（scale_params 和 offset_params）
+    Reset scaling parameters (scale_params and offset_params) for both the actor
+    and its target network based on new action bounds.
 
-    参数:
-        agent: DDPGAgent 实例
-        new_bounds: dict, 例如 env.bounds
+    This function is typically used when the environment's action space changes
+    (e.g., different target weight or new physical limits), and the actor networks
+    must rescale their output accordingly.
+
+    Args:
+        agent: DDPGAgent instance that contains actor and actor_target networks.
+        new_bounds (dict): A dictionary of new action bounds (e.g., from env.bounds).
+                           Each key maps to a (min, max) tuple for the action variable.
     """
     if hasattr(agent.actor, '_init_param_scaling'):
         agent.actor._init_param_scaling(new_bounds)
     if hasattr(agent.actor_target, '_init_param_scaling'):
         agent.actor_target._init_param_scaling(new_bounds)
-    print("✅ Actor 缩放参数已根据新 bounds 重新初始化。")
+    print("✅ Actor scaling parameters re-initialized based on new bounds.")
