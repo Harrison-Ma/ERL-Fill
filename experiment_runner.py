@@ -11,38 +11,34 @@ from EmotionModule import EmotionModuleNone,EmotionModule,EmotionModuleSimple
 from DifferentModules.ddpg_agent import DDPGAgent, train_ddpg
 from DifferentModules.td3_agent import TD3Agent
 from DifferentModules.sac_agent import SACAgent,train_sac
-from DifferentModules.ERL_Fill_agent import EmotionSACAgent,train_emotion_sac
+from DifferentModules.ERL_Fill_agent import EmotionSACAgent,train_erl_fill
 from DifferentModules.simple_emotion_sac_agent import SimpleEmotionSACAgent,train_simple_sac
 from MutiConditionEnv import MultiConditionWeightEnv
+
+from CommonInterface.Logger import init_logger
 
 def run_experiment_1(
     episodes=1000, max_steps=500, device='cuda', env_mode='sim',
     emotion_modes=['none', 'simple', 'transformer'],
     algo_list=['ddpg', 'td3', 'sac'],
-    train=True, # ✅ 加了开关
-    experiment_id = 1,
-    lambda_emo=0.05,
-    log_prefix="experiment"
+    train=True,
+    experiment_id=1,
+    lambda_emo=0.1,
+    log_prefix="experiment",
+    logger=None
 ):
     """
-    Emotion × Algorithm 全组合实验，支持 train/test 分开执行。
+    Run combinations of [Emotion × Algorithm] for training or testing.
     """
     results = []
 
     for algo in algo_list:
         for mode in emotion_modes:
-            print(f"\n=== Running {algo.upper()} | Emotion Mode: {mode.upper()} | Train={train} ===")
+            if logger: logger.info(f"=== Running {algo.upper()} | Emotion Mode: {mode.upper()} | Train={train} ===")
 
-            # Step 1: 创建环境
             env = WeightEnv()
-            if env_mode == 'sim':
-                env.use_offline_sim = 1
-            if env_mode == 'onboard':
-                env.use_offline_sim = 0
-            if env_mode == 'real':
-                env.use_offline_sim = 2
+            env.use_offline_sim = {'sim': 1, 'onboard': 0, 'real': 2}.get(env_mode, 1)
 
-            # Step 2: 创建 Emotion 模块
             if mode == 'transformer':
                 emotion_module = EmotionModule(device=device)
             elif mode == 'simple':
@@ -52,64 +48,52 @@ def run_experiment_1(
             else:
                 raise ValueError(f"Unsupported emotion mode: {mode}")
 
-            # Step 3: 创建 Agent
             if algo == 'ddpg':
-                # from WeightDemo import DDPGAgent
                 agent = DDPGAgent(env, device=device)
             elif algo == 'td3':
-                # from td3_module import TD3Agent
                 agent = TD3Agent(env, device=device)
             elif algo == 'sac':
-                # from Emotion_sac import EmotionSACAgent
-                # from sac_module import SACAgent
-                # from simple_emotion_sac import SimpleEmotionSACAgent
                 if mode == 'none':
                     agent = SACAgent(env, device=device)
-                elif mode =="simple":
+                elif mode == 'simple':
                     agent = SimpleEmotionSACAgent(env, device=device)
                 else:
                     agent = EmotionSACAgent(env, device=device)
             else:
                 raise ValueError(f"Unsupported algorithm: {algo}")
 
-            # Step 4: 绑定情感模块
             if hasattr(agent, 'emotion'):
                 agent.emotion = emotion_module
             env.attach_agent(agent)
 
-            # Step 5: 路径
-            if experiment_id == 2:
-                model_dir = f"saved_models/{algo}_exp2_emotion_compare"
-            else:
-                model_dir = f"saved_models/{algo}_emotion_compare"
+            model_dir = f"saved_models/{algo}_exp2_emotion_compare" if experiment_id == 2 else f"saved_models/{algo}_emotion_compare"
             os.makedirs(model_dir, exist_ok=True)
             model_path = os.path.join(model_dir, f"{algo}_{mode}_{lambda_emo}.pth")
             log_prefix = f"exp1_{algo}_emotion_{mode}_{lambda_emo}"
 
             if env_mode == 'sim':
-                print("已选择不加载预训练权重，将从头开始训练。")
+                if logger: logger.info("No pretrained weights loaded. Training from scratch.")
             elif env_mode == 'onboard':
-                print("执行板载训练。")
+                if logger: logger.info("Onboard training selected.")
                 pretrain_path = "pre_train_pth/sac_transformer.pth"
                 # agent.load(pretrain_path)
-                # print(f"成功加载预训练权重: {pretrain_path}")
+                # if logger: logger.info(f"Loaded pretrained weights from: {pretrain_path}")
             elif env_mode == 'real':
-                print("执行真实训练。")
+                if logger: logger.info("Real-world training selected.")
                 pretrain_path = "pre_train_pth/AIM_v2_onboard_24900_25000.pth"
                 weights = torch.load(pretrain_path, weights_only=False)
                 agent.load_weights(weights)
                 reset_actor_scaling(agent, env.bounds)
-                print(f"成功加载预训练权重: {pretrain_path}")
+                if logger: logger.info(f"Loaded pretrained weights from: {pretrain_path}")
             else:
-                print("加载现有默认权重，继续执行训练。")
+                if logger: logger.info("Default pretrained weights loaded.")
                 pretrain_path = "pre_train_pth/AIM_v2_sim_24900_25000.pth"
                 agent.load(pretrain_path)
-                # reset_actor_scaling(agent, env.bounds)
-                print(f"成功加载预训练权重: {pretrain_path}")
+                if logger: logger.info(f"Loaded pretrained weights from: {pretrain_path}")
 
             if train:
-                # === 训练阶段 ===
-                print(f"🚀 Start training [{algo.upper()}] with emotion mode [{mode}]")
+                if logger: logger.info(f"🚀 Start training [{algo.upper()}] with emotion mode [{mode}]")
+
                 if algo == 'ddpg':
                     train_ddpg(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
                 elif algo == 'sac':
@@ -118,16 +102,19 @@ def run_experiment_1(
                     elif mode == "simple":
                         train_simple_sac(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
                     else:
-                        train_emotion_sac(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix, lambda_emo=lambda_emo)
+                        train_emotion_sac(env, agent, episodes=episodes, max_steps=max_steps,
+                                          log_prefix=log_prefix, lambda_emo=lambda_emo)
+
                 agent.save(model_path)
-                print(f"✅ Training complete. Model saved to {model_path}")
+                if logger: logger.info(f"✅ Training complete. Model saved to {model_path}")
 
             else:
-                # === 测试阶段 ===
-                print(f"🔍 Start testing [{algo.upper()}] with emotion mode [{mode}]")
+                if logger: logger.info(f"🔍 Start testing [{algo.upper()}] with emotion mode [{mode}]")
+
                 if not os.path.exists(model_path):
-                    print(f"❌ Model not found: {model_path}. Skip.")
+                    if logger: logger.info(f"❌ Model not found: {model_path}. Skip.")
                     continue
+
                 agent.load(model_path)
 
                 total_reward = 0
@@ -141,20 +128,17 @@ def run_experiment_1(
                         episode_reward = 0
                         for step in range(max_steps):
                             if hasattr(agent, 'act'):
-                                # === 通用动作选择（根据算法适配）
                                 if algo in ['er_ddpg', 'ddpg', 'td3', 'emotion_td3']:
                                     action = agent.act(state, add_noise=False)
-
                                 elif algo in ['sac', 'emotion_sac']:
                                     action = agent.act(state, deterministic=True)
-
-                                elif algo in ['ppo']:
+                                elif algo == 'ppo':
                                     action, _ = agent.select_action(state)
-
                                 else:
-                                    raise ValueError(f"Unsupported algorithm type: {algo}")
+                                    raise ValueError(f"Unsupported algorithm: {algo}")
                             else:
                                 action = agent.select_action(state)
+
                             action = action.squeeze() if isinstance(action, np.ndarray) else action
                             next_state, reward, done, info = env.step(action)
                             state = next_state
@@ -181,20 +165,19 @@ def run_experiment_1(
                             f"Emotion: {cur_emotion}"
                         )
 
-                        print(f"🎯 Test Episode {ep+1}: Reward = {episode_reward:.2f}")
+                        if logger: logger.info(f"🎯 Test Episode {ep+1}: Reward = {episode_reward:.2f}")
                         f_log.write(log_str + "\n")
 
                     avg_reward = total_reward / test_episodes
                     f_log.write(f"\n✅ Avg Test Reward: {avg_reward:.2f}\n")
-                    print(f"✅ Avg Test Reward for {algo.upper()} [{mode}] = {avg_reward:.2f}")
+                    if logger: logger.info(f"✅ Avg Test Reward for {algo.upper()} [{mode}] = {avg_reward:.2f}")
 
                 results.append((algo, mode, avg_reward))
 
-    # === 汇总测试结果 ===
     if not train:
-        print("\n=== 🎯 Final Results: Algo × Emotion Mode ===")
+        if logger: logger.info("\n=== 🎯 Final Results: Algo × Emotion Mode ===")
         for algo, mode, reward in results:
-            print(f"[{algo.upper()} - {mode}] Avg Test Reward: {reward:.2f}")
+            if logger: logger.info(f"[{algo.upper()} - {mode}] Avg Test Reward: {reward:.2f}")
 
     return results
 
@@ -463,7 +446,7 @@ def run_experiment_3(train=True, episodes=1000, max_steps=100, device='cuda', al
         # 'emotion_td3': lambda env, agent, episodes, max_steps, log_prefix, logger:
         # train_emotion_td3(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix),
         'emotion_sac': lambda env, agent, episodes, max_steps, log_prefix, logger:
-        train_emotion_sac(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
+        train_erl_fill(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
     }
 
     # === 4. 初始化目录 ===
@@ -612,7 +595,8 @@ def run_experiment_4(device='cuda', max_steps=100, train=True, use_off_sim=1):
             env_mode=cfg["env_mode"],
             train=train,
             experiment_id=3,
-            lambda_emo = 0.05
+            lambda_emo = 0.05,
+            logger=logger
         )
 
     print(f"✅ {stage_name.upper()} training complete. Final model saved at: {model_path}")
@@ -627,8 +611,12 @@ if __name__ == "__main__":
     test_episodes = 10
     use_offline_sim = 1 #1-采样离线仿真，0-采用板载仿真，2-真实系统训练
 
-    # === 实验一：情感机制消融实验（5组实验） ===
+
+
+    # === 实验一：情感机制消融实验 ===
     if experiment_id == 1:
+        logger = init_logger(log_prefix="exp1", phase="train")
+
         emotion_modes = ['none', 'simple', 'transformer']  # Baseline、Simple、Transformer
         algo_list = ['sac']  # 本实验只跑SAC
         results = []
@@ -648,9 +636,15 @@ if __name__ == "__main__":
             lambda_emo = config['lambda_emo']
             group_name = config['name']
 
-            print(f"\n=== Running Group: {group_name} | Mode: {mode} | λ_emo: {lambda_emo} ===")
+            # === 日志前缀：exp1_ + group_name + lambda ===
+            log_prefix = f"exp1_{group_name}_lambda{lambda_emo}".replace(".", "_")
 
-            # === 第一步：训练 ===
+            # 初始化 logger（每组独立日志）
+            logger = init_logger(log_prefix=log_prefix, phase="train", to_console=True)
+
+            logger.info(f"=== Running Group: {group_name} | Mode: {mode} | λ_emo: {lambda_emo} ===")
+
+            # === 训练 ===
             _ = run_experiment_1(
                 episodes=episodes,
                 max_steps=max_steps,
@@ -660,10 +654,11 @@ if __name__ == "__main__":
                 algo_list=algo_list,
                 train=True,
                 lambda_emo=lambda_emo,
-                log_prefix=f"{group_name}_train"
+                log_prefix=f"{log_prefix}_train",
+                logger=logger
             )
 
-            # === 第二步：测试 ===
+            # === 测试 ===
             test_results = run_experiment_1(
                 episodes=test_episodes,
                 max_steps=max_steps,
@@ -673,17 +668,13 @@ if __name__ == "__main__":
                 algo_list=algo_list,
                 train=False,
                 lambda_emo=lambda_emo,
-                log_prefix=f"{group_name}_test"
+                log_prefix=f"{log_prefix}_test",
+                logger=logger
             )
 
-            # 结果保存
+            # 保存结果
             for algo, mode_result, avg_reward in test_results:
                 results.append((group_name, algo, mode_result, avg_reward))
-
-        # === 最终实验结果输出 ===
-        print("\n=== ✅ 实验一（Emotion Mechanism Ablation）5组对照结果 ===")
-        for group, algo, mode, reward in results:
-            print(f"[Group: {group} | Algo: {algo.upper()} | Mode: {mode}] → AvgTestReward: {reward:.2f}")
 
     # === 实验二：强化学习算法对比实验 ===
     elif experiment_id == 2:

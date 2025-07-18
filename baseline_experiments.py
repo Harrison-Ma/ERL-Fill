@@ -12,7 +12,7 @@ from DifferentModules.rls_pidagent import RLS_PIDAgent
 from DifferentModules.ddpg_agent import train_ddpg
 from DifferentModules.td3_agent import train_td3
 from DifferentModules.td3_bc_agent import train_td3_bc
-from DifferentModules.ERL_Fill_agent import train_emotion_sac
+from DifferentModules.ERL_Fill_agent import train_erl_fill
 from DifferentModules.ppo_agent import train_ppo
 from DifferentModules.sac_agent import train_sac
 from DifferentModules.cql_agent import train_cql
@@ -283,7 +283,7 @@ def train_td3_bc(env, agent, episodes=1000, max_steps=100, log_prefix="td3_bc"):
     return train_td3_bc(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
 
 
-def train_emotion_sac(env, agent, episodes=1000, max_steps=100, log_prefix="emotion_sac", lambda_emo=0.05):
+def train_erl_fill(env, agent, episodes=1000, max_steps=100, log_prefix="emotion_sac", lambda_emo=0.05):
     """
     Train an Emotion-SAC agent.
 
@@ -298,7 +298,7 @@ def train_emotion_sac(env, agent, episodes=1000, max_steps=100, log_prefix="emot
     Returns:
         Training rewards history.
     """
-    return train_emotion_sac(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix, lambda_emo=lambda_emo)
+    return train_erl_fill(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix, lambda_emo=lambda_emo)
 
 
 def train_ppo(env, agent, episodes=1000, max_steps=100, log_prefix="ppo"):
@@ -375,7 +375,7 @@ algo_trainers = {
     "td3": train_td3,
     "td3_bc": train_td3_bc,
     # "emotion_td3": train_emotion_td3,  # ✅ Newly added
-    "emotion_sac": train_emotion_sac,
+    "emotion_sac": train_erl_fill,
     "ppo": train_ppo,
     "sac": train_sac,
     "cql": train_cql,

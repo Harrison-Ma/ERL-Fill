@@ -493,7 +493,7 @@ logging.basicConfig(filename="logs/sac_training_transformer.log", filemode="w",
                     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 
-def train_emotion_sac(env, agent, episodes=1000, max_steps=500, log_prefix="emotion_sac", model_path=None, logger=None,
+def train_erl_fill(env, agent, episodes=1000, max_steps=500, log_prefix="emotion_sac", model_path=None, logger=None,
                       lambda_emo=0.05):
     """
     Train an emotion-augmented Soft Actor-Critic (SAC) agent on a given environment.
@@ -640,13 +640,6 @@ def train_emotion_sac(env, agent, episodes=1000, max_steps=500, log_prefix="emot
             action_entropy = agent.policy.get_action_entropy(state_tensor, emotion_tensor)
 
         # Quantitative metrics evaluation:
-        # 1. Average reward (convergence)
-        # 2. Average error (control precision 1)
-        # 3. Average completion time (control precision 2)
-        # 4. Average action entropy (exploration)
-        # 5. Fastest convergence episode (efficiency) - tracked externally if needed
-        # 6. Reward variance (stability)
-        # 7. Emotion fluctuation std dev (dynamic optimization effect)
         writer.add_scalar("Metrics/AvgReward", ep_reward / average_step, ep)
         writer.add_scalar("Metrics/AvgError", ep_err / average_step, ep)
         writer.add_scalar("Metrics/CompletionTime", ep_time / average_step, ep)
