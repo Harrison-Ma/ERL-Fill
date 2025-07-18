@@ -12,7 +12,7 @@ if platform.system() == 'Windows':
 else:
     port_name = '/dev/ttyUSB0'
 
-# === 实验配置表 ===
+# === Experiment configuration table ===
 experiment_configs = {
     "variant_25kg": {
         "name": "Condition Variant - 25kg±25g",
@@ -28,7 +28,7 @@ experiment_configs = {
     }
 }
 
-# 环境定义（保持不变），默认为25kg的环境
+# Environment definition (default is 25kg)
 class WeightEnv:
     def __init__(self):
         self.target_weight = 25000
@@ -37,27 +37,27 @@ class WeightEnv:
 
         self.controller = VirtualWeightController()
 
-        self.episode_counter = 0  # 当前批次编号
-        self.step_counter = 0  # 当前批次的步数
+        self.episode_counter = 0  # Current batch number
+        self.step_counter = 0  # Current step in batch
 
-        self.max_steps = 100  # 默认最大步数
+        self.max_steps = 100  # Default max steps
 
         self.recent_errors = deque(maxlen=int(self.max_steps/5))
-        # 参数取值范围（上下限）
+        # Parameter ranges (lower and upper bounds)
         self.bounds = {
-            "fast_weight": (7000, 18000),# 快加速率范围 (g/s)
-            "medium_weight": (0, 1),    # 中加速率范围 (g/s)
-            "slow_weight": (24900, 25000),    # 慢加速率范围 (g/s)
+            "fast_weight": (7000, 18000),# Fast feed rate range (g/s)
+            "medium_weight": (0, 1),    # Medium feed rate range (g/s)
+            "slow_weight": (24900, 25000),    # Slow feed rate range (g/s)
 
-            "fast_opening": (35, 75),        # 快加开度范围 (%)
-            "medium_opening": (3, 5),      # 中加开度范围 (%)
-            "slow_opening": (5, 20),          # 慢加开度范围 (%)
+            "fast_opening": (35, 75),        # Fast opening range (%)
+            "medium_opening": (3, 5),      # Medium opening range (%)
+            "slow_opening": (5, 20),          # Slow opening range (%)
 
-            "fast_delay": (100, 300),         # 快加延迟范围 (ms)
-            "medium_delay": (100, 200),       # 中加延迟范围 (ms)
-            "slow_delay": (100, 200),         # 慢加延迟范围 (ms)
+            "fast_delay": (100, 300),         # Fast delay range (ms)
+            "medium_delay": (100, 200),       # Medium delay range (ms)
+            "slow_delay": (100, 200),         # Slow delay range (ms)
 
-            "unload_delay": (300, 500)         # 卸料时间范围 (ms)
+            "unload_delay": (300, 500)         # Unload time range (ms)
         }
         self._update_scaling_params()
 
@@ -67,36 +67,31 @@ class WeightEnv:
             self.scale_centers[key] = (high + low) / 2
             self.scale_ranges[key] = (high - low) / 2
 
-        self.state_dim = 2 #每次输出的称重过程结果，例如误差、时间、速率等
-        self.action_dim = len(self.bounds) #就是每次称重的输入控制变量，例如快加目标值、中加目标值、慢加目标值以及开度、延时等。
+        self.state_dim = 2 # Output of each weighing process, e.g. error, time, rate, etc.
+        self.action_dim = len(self.bounds) # Input control variables for each weighing, e.g. fast/medium/slow targets, opening, delay, etc.
 
-        # 初始状态
+        # Initial state
         self.state = None
 
-        self.agent = None  # ✅ 预留 agent 接口
+        self.agent = None  # Reserved agent interface
 
         self.use_offline_sim = 1
 
-        self.target_weight = 25000  # 目标重量100kg
-        self.target_weight_err = 25  # 目标重量100kg
+        self.target_weight = 25000  # Target weight 25kg
+        self.target_weight_err = 25  # Target weight error 25g
         self.target_time = 2
         self.current_weight = 0
         self.current_speed = 0
         self.current_opening = 0
-        self.material_coefficient = 1.0  # 材料系数，假设为1.0
-        self.registers = [0] * 300  # 模拟Modbus寄存器
+        self.material_coefficient = 1.0  # Material coefficient, assumed to be 1.0
+        self.registers = [0] * 300  # Simulated Modbus registers
 
-        # 单位为开度/秒
-        # 当前速度
-        self.current_speed = 0
-        # 电机速度
-        self.motor_speed = 10000
-        # 电机加速度
-        self.motor_acceleration = 5000000
-        # 电机减速度
-        self.motor_deceleration = 100000
-        # 电机方向
-        self.motor_direction = 0
+        # Opening/sec
+        self.current_speed = 0  # Current speed
+        self.motor_speed = 10000  # Motor speed
+        self.motor_acceleration = 5000000  # Motor acceleration
+        self.motor_deceleration = 100000  # Motor deceleration
+        self.motor_direction = 0  # Motor direction
         self.speed = 0
 
         self.client = ModbusSerialClient(
@@ -128,39 +123,37 @@ class WeightEnv:
         }
 
     def normalize_action(self, action):
-        """将网络输出的[-1,1]动作映射到实际参数范围"""
+        """Map network output [-1,1] actions to actual parameter ranges"""
         scaled_action = {}
         for idx, key in enumerate(self.bounds):
             scaled_action[key] = action[idx] * self.scale_ranges[key] + self.scale_centers[key]
         return scaled_action
 
     def attach_agent(self, agent):
-        self.agent = agent  # ✅ 接收 agent（用于访问其 memory）
+        self.agent = agent  # Receive agent (for accessing its memory)
 
     def reset(self):
-        """重置环境并返回归一化后的初始状态向量"""
+        """Reset environment and return normalized initial state vector"""
 
-        # ✅ 初始化状态向量
+        # Initialize state vector
         if self.episode_counter == 0 or self.agent is None or len(self.agent.memory) < 10:
-            # 首轮或经验不足 → 随机初始化并归一化
+            # First round or insufficient experience → random initialization and normalization
             raw_state = np.array([
                 random.uniform(0, self.target_weight_err),
                 random.uniform(0, self.target_time)
             ], dtype=np.float32)
         else:
-            # 否则 → 采样经验池并均值（经验中已归一化，无需再除）
-            # samples = random.sample(self.agent.memory, 10)
+            # Otherwise → sample experience buffer and average (already normalized)
             samples = random.sample(self.agent.memory.buffer, 10)
-            # print("samples:", samples)
             raw_state = np.mean([s[0] for s in samples], axis=0).astype(np.float32)
 
-        # ✅ 状态归一化（如果已归一化过则此操作可略）
+        # State normalization (skip if already normalized)
         state_vector = np.array([
             raw_state[0] / self.target_weight_err,
             raw_state[1] / self.target_time
         ], dtype=np.float32)
 
-        # ✅ 重置环境状态变量
+        # Reset environment state variables
         self.current_weight = 0
         self.current_speed = 0
         self.current_opening = 0
@@ -171,7 +164,7 @@ class WeightEnv:
         return state_vector
 
     def _state_to_vector(self):
-        """将字典状态转换为向量"""
+        """Convert dict state to vector"""
         return np.array([self.state[key] for key in self.param_order], dtype=np.float32)
 
     def write_register(self, address, value):
@@ -185,51 +178,40 @@ class WeightEnv:
         return self.registers[address:address + count]
 
     # def motor_simulation(self, target_pos):
-    #     # 简化的电机模拟：直接设置速度为位置差的1%
+    #     # Simplified motor simulation: directly set speed to 1% of position difference
     #     self.current_speed = abs(target_pos - self.registers[10]) * 0.01
 
     def motor_simulation(self, target_pos):
-        # time.sleep(100/1000)
-        # global motor_speed, speed, current_speed, motor_acceleration, current_opening, motor_deceleration, motor_direction
-        # 每一毫秒更新一次
-
+        # Update every millisecond
         # print("target_pos ", target_pos)
         # print("self.current_opening ", self.current_opening)
 
-        # 计算减速需要时间
+        # Calculate deceleration time
         decelerate_time = self.current_speed / self.motor_deceleration
-        # print("减速需要时间",decelerate_time)
-        # 计算减速需要位移
+        # Calculate deceleration distance
         decelerate_distance = 0.5 * self.motor_deceleration * np.power(decelerate_time, 2)
-        # print("减速需要位移",decelerate_distance)
         if abs(self.current_opening - target_pos) > 1:
-            # 更新速度
+            # Update speed
             if self.current_opening < target_pos:
-                # 正转
+                # Forward
                 self.motor_direction = 1
                 if self.current_opening < target_pos - decelerate_distance:
-                    # 加速阶段
+                    # Acceleration phase
                     if self.current_speed < self.motor_speed:
                         self.current_speed += self.motor_acceleration / 1000
-                        # print("self.motor_acceleration", self.motor_acceleration)
-                        # print("self.current_speed",self.current_speed)
-                        # print("加速")
                 else:
-                    # 减速阶段
+                    # Deceleration phase
                     self.current_speed -= self.motor_deceleration / 1000
-                    # print("减速")
             elif self.current_opening > target_pos:
-                # 反转
+                # Reverse
                 self.motor_direction = -1
                 if self.current_opening > decelerate_distance:
-                    # 加速阶段
+                    # Acceleration phase
                     if self.current_speed < self.motor_speed:
                         self.current_speed += self.motor_acceleration / 1000
-                        # print("加速")
                 else:
-                    # 减速阶段
+                    # Deceleration phase
                     self.current_speed -= self.motor_deceleration / 1000
-                    # print("减速")
         else:
             self.current_speed = 0
             self.current_opening = target_pos
@@ -237,39 +219,29 @@ class WeightEnv:
         self.speed = self.current_speed * self.motor_direction
         self.current_opening += self.speed / 1000
 
-        # print("self.speed / 1000 ", self.current_speed)
-
-        # print("self.current_opening ", self.current_opening)
-        # # print(current_opening)
-        # return current_opening
-
     def weight_simulation(self, opening, material_coeff):
         random_number = random.uniform(-1, 1)
-        # 简化的重量模拟：重量增加 = 开度 * 材料系数 * 时间间隔
-        # 假设时间间隔为1ms（0.001秒）
+        # Simplified weight simulation: weight increase = opening * material coefficient * time interval
+        # Assume time interval is 1ms (0.001s)
         self.current_weight = int(self.current_weight + opening * (material_coeff + random_number))
 
     # def weight_simulation(opening, coefficient):
     #     global current_weight
     #     random_number = random.uniform(-1, 1)
-    #     # print("随机数:", random_number*current_opening*0.1)
-    #     # 更新当前重量，增加随机数
-    #     # 随机数根据开度变化
-    #     # print("add value:",opening*coefficient+ random_number*opening)
-    #     # print("add_random:",random_number*opening)
+    #     # Update current weight, add random number
     #     current_weight = int(current_weight + opening * (coefficient + random_number))
 
     def _get_current_opening(self):
-        # 根据阶段返回对应开度（简化逻辑）
-        if self.current_weight < 50000:  # 快加阶段
+        # Return corresponding opening by stage (simplified logic)
+        if self.current_weight < 50000:  # Fast feed stage
             return self.state["fast_opening"]
-        elif self.current_weight < 80000:  # 中加阶段
+        elif self.current_weight < 80000:  # Medium feed stage
             return self.state["medium_opening"]
-        else:  # 慢加阶段
+        else:  # Slow feed stage
             return self.state["slow_opening"]
 
     def _run_simulation(self, action):
-        # 写入控制参数到寄存器
+        # Write control parameters to registers
         Arg = [
             self.target_weight,
             int(action["fast_weight"]),
@@ -286,26 +258,26 @@ class WeightEnv:
         print("Arg:",Arg)
         self.client.write_registers(200, Arg)
 
-        # 开启启动信号
-        # 读取当前寄存器值（假设是保持寄存器或输入寄存器）
+        # Enable start signal
+        # Read current register value (assume holding or input register)
         result = self.client.read_holding_registers(70)
         current_value = result.registers[0]
-        # 设置第0位为1
+        # Set bit 0 to 1
         new_value = current_value | (1 << 0)
-        # 将新的值写回寄存器
+        # Write new value back to register
         self.client.write_register(70, new_value)
 
-        # 开启允加信号
+        # Enable feed signal
         result = self.client.read_holding_registers(70)
         current_value = result.registers[0]
-        # 设置第1位为1
+        # Set bit 1 to 1
         new_value = current_value | (1 << 1)
-        # 将新的值写回寄存器
+        # Write new value back to register
         self.client.write_register(70, new_value)
 
-        # 统计时间
+        # Start timing
         start_time = time.time()
-        self.client.write_registers(5, 0)  # 状态复位
+        self.client.write_registers(5, 0)  # Reset status
 
         total_time = 0
         speeds, openings, weights = [], [], []
@@ -318,77 +290,51 @@ class WeightEnv:
             self.elapsed_time = round(self.elapsed_time * 1000)
 
             # time.sleep(0.003)
-            controler_modbus_reg = self.client.read_holding_registers(address=0, count=124)  # 读取控制板数据
-            target_status = controler_modbus_reg.registers[6]  # 获取控制板当前运行状态
-            # print("target_status",target_status)
-            PackFinish = (target_status & (1 << 5))  # 定值信号
-            # print("PackFinish ",PackFinish)
+            controler_modbus_reg = self.client.read_holding_registers(address=0, count=124)  # Read controller board data
+            target_status = controler_modbus_reg.registers[6]  # Get current running status of controller board
+            PackFinish = (target_status & (1 << 5))  # Set value signal
 
-            # if (self.current_opening < 0):
-            #     PackFinish = 1
-            # print("PackFinish ", PackFinish)
-
-            target_pos = controler_modbus_reg.registers[10]  # 获取目标位置
-            # print("target_pos ",target_pos)
-            # if self.current_weight>24000:
-                # print("bbb")
+            target_pos = controler_modbus_reg.registers[10]  # Get target position
 
             if self.elapsed_time < 200:
                 for _ in range(int(self.elapsed_time)):
-                    self.motor_simulation(target_pos)  # 根据目标位置进行电机模拟计算当前位置
-
-                    self.weight_simulation(self.current_opening, self.material_coefficient)  # 根据当前位置计算当前重量
-                    # time.sleep(0.003)
+                    self.motor_simulation(target_pos)  # Simulate motor position based on target position
+                    self.weight_simulation(self.current_opening, self.material_coefficient)  # Calculate current weight based on current position
                     weights.append(self.current_weight)
                     openings.append(self.current_opening)
                     speeds.append(self.current_speed)
-                    # print(
-                    #     f"Current speed: {self.current_speed:.2f}, opening: {self.current_opening:.2f}, weight: {self.current_weight:.2f}, elapsed time: {self.elapsed_time} ms")
-            self.client.write_registers(2, [int(self.current_weight)])  # 写入重量
-            # print("write_weight",int(self.current_weight))
-        # 开启允卸信号
+            self.client.write_registers(2, [int(self.current_weight)])  # Write weight
+        # Enable unload signal
         result = self.client.read_holding_registers(70)
         current_value = result.registers[0]
         new_value = current_value | (1 << 2)
-        # 将新的值写回寄存器
+        # Write new value back to register
         self.client.write_register(70, new_value)
 
         end_time = time.time()
         total_time = end_time - start_time
-        # print("total_time:", total_time)
         final_weight = self.current_weight
-        # print("current_weight:", final_weight)
         array = np.array([speeds, openings, weights])
 
         time.sleep(1)
-        self.client.write_register(2, 0)  # 清空重量
+        self.client.write_register(2, 0)  # Clear weight
         self.current_weight = 0
 
         return speeds, openings, weights, total_time, final_weight
 
     # def step(self, action):
-    #     """执行动作，返回新的状态、奖励、是否结束"""
-    #     # 限制 action 在合理范围内
+    #     """Execute action, return new state, reward, done"""
     #     for key in action:
     #         action[key] = np.clip(action[key], *self.bounds[key])
-    #
-    #     # 计算称重误差（目标值 100000g，误差服从正态分布）
     #     actual_weight = (action["fast_weight"] * 2 + action["medium_weight"] + action["slow_weight"]) * 0.01
     #     weight_error = abs(actual_weight - self.target_weight)
-    #
-    #     # 计算加料时间（假设时间与加料速率成反比）
     #     feeding_time = 100000 / (action["fast_weight"] + action["medium_weight"] + action["slow_weight"]) * 10
-    #
-    #     # 计算奖励（目标是最小误差和最短时间）
     #     reward = - (weight_error + feeding_time)
-    #
-    #     # 更新状态
     #     self.state.update(action)
     #     new_state = {
     #         "weight_error": weight_error,
     #         "feeding_time": feeding_time
     #     }
-    #
     #     return new_state, reward, False, {}
 
     def _run_simulation_offline(self, action):
@@ -398,9 +344,9 @@ class WeightEnv:
         return self.controller.simulate_run()
 
     def step(self, action):
-        """执行一步称重，返回新状态、奖励、是否完成"""
+        """Execute one weighing step, return new state, reward, done"""
 
-        # ✅ 动作格式检查与转换
+        # Action format check and conversion
         if isinstance(action, np.ndarray):
             action = {
                 "fast_weight": action[0],
@@ -415,22 +361,22 @@ class WeightEnv:
                 "unload_delay": action[9],
             }
 
-        # ✅ 动作范围裁剪
+        # Clip action to valid range
         for key in action:
             lower_bound, upper_bound = self.bounds[key]
             action[key] = np.clip(action[key], lower_bound, upper_bound)
 
-        # ✅ 执行仿真
+        # Run simulation
         if self.use_offline_sim:
             _, _, _, total_time, final_weight = self._run_simulation_offline(action)
         else:
             _, _, _, total_time, final_weight = self._run_simulation(action)
 
-        # ✅ 计算误差
+        # Calculate errors
         weight_error = abs(final_weight - self.target_weight)
         time_error = abs(total_time - self.target_time)
 
-        # ✅ 梯度误差奖励机制
+        # Gradient error reward mechanism
         if weight_error <= 10:
             error_reward = +5000
         elif weight_error <= self.target_weight_err:
@@ -448,7 +394,7 @@ class WeightEnv:
         else:
             error_reward = -300 - (weight_error - 300) * 0.5
 
-        # ✅ 时间误差惩罚
+        # Time error penalty
         if time_error <= 0.3 * self.target_time:
             time_reward = +500
         elif time_error <= 0.5 * self.target_time:
@@ -464,29 +410,17 @@ class WeightEnv:
         else:
             time_reward = -300 - (time_error - 3 * self.target_time) * 200
 
-        # # ✅ 连续误差奖励（指数衰减）
-        # error_reward = 6000 * np.exp(-weight_error / self.target_weight_err) - 500
-
-        # # ✅ 时间惩罚（指数惩罚 + 平滑）
-        # time_factor = time_error / self.target_time
-        # time_reward = 3000 * np.exp(-time_factor) - 500  # 最低为 -300
         target_reward = 0
         if weight_error <= self.target_weight_err:
             time_factor = np.clip((3 * self.target_time - total_time) / self.target_time, 0, 3)
             target_reward = 2000 * np.tanh(time_factor)
 
-        # # ✅ 达标目标范围内再加奖励（仅误差较小时）
-        # target_reward = 0
-        # if weight_error <= 25:
-        #     time_factor = np.clip((3 * self.target_time - total_time) / self.target_time, 0, 3)
-        #     target_reward = 2000 * np.tanh(time_factor)  # 平滑上升
-
-        # ✅ 动作多样性奖励
+        # Action diversity bonus
         action_array = np.array(list(action.values()), dtype=np.float32)
         action_std = np.std(action_array)
         diversity_bonus = 0.05 * action_std
 
-        # ✅ 控制边界惩罚（保持不变）
+        # Control boundary penalty
         boundary_penalty = 0
         for key, value in action.items():
             if key not in self.bounds:
@@ -495,19 +429,19 @@ class WeightEnv:
             if value <= lower + 1e-3 or value >= upper - 1e-3:
                 boundary_penalty -= 300
 
-        # ✅ 汇总
+        # Reward summary
         base_reward = -1000
         reward = base_reward + error_reward + time_reward + target_reward + diversity_bonus + boundary_penalty
         reward = max(reward, -3000)
         reward = min(reward, 6000)
 
-        # ✅ 新状态向量（推荐使用归一化）
+        # New state vector (recommended normalized)
         new_state_vector = np.array([
             weight_error / self.target_weight_err,
             time_error / self.target_time
         ], dtype=np.float32)
 
-        # ✅ 记录误差并判断是否结束
+        # Record error and check if done
         self.recent_errors.append(weight_error)
         min_steps_required = self.max_steps // 2
         done = (
@@ -517,22 +451,13 @@ class WeightEnv:
                  np.mean(self.recent_errors) < 25)
         )
 
-        # ✅ 显示训练状态
+        # Display training status
         print(f"[Ep{self.episode_counter - 1} | Step{self.step_counter}] "
               f"Weight: {final_weight:.1f}g | Error: {weight_error:.1f}g | "
               f"Time: {total_time:.3f}s | Reward: {reward:.2f}")
         print(f"Action: {action}")
 
-        # if done:
-        #     print(f"✔️ Episode {self.episode_counter} finished. "
-        #           f"Avg error (last 25): {np.mean(self.recent_errors):.2f}g")
-
-        # # ✅ 写入日志
-        # with open("weight_log.csv", "a") as f:
-        #     f.write(f"{self.episode_counter},{self.step_counter},{final_weight:.1f},"
-        #             f"{weight_error:.1f},{feeding_time:.3f},{reward:.2f}\n")
-
-        # ✅ 步数更新
+        # Step update
         self.step_counter += 1
 
         return new_state_vector, reward, done, {
@@ -554,8 +479,8 @@ class MultiConditionWeightEnv(WeightEnv):
         if config and "bounds" in config:
             self.bounds = config["bounds"]
 
-        # 确保更新归一化参数
+        # Ensure normalization parameters are updated
         self._update_scaling_params()
 
-        # 更新 action_dim
+        # Update action_dim
         self.action_dim = len(self.bounds)
