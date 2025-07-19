@@ -5,12 +5,11 @@ import os
 import pandas as pd
 from CommonInterface.ScaleTransformer import reset_actor_scaling
 from WeightEnv import WeightEnv
-from EmotionModule import EmotionModuleNone,EmotionModule,EmotionModuleSimple
-from DifferentModules.ddpg_agent import DDPGAgent, train_ddpg
-from DifferentModules.td3_agent import TD3Agent
-from DifferentModules.sac_agent import SACAgent,train_sac
-from DifferentModules.ERL_Fill_agent import EmotionSACAgent,train_erl_fill
-from DifferentModules.simple_emotion_sac_agent import SimpleEmotionSACAgent,train_simple_sac
+from EmotionModule import EmotionModuleNone, EmotionModule, EmotionModuleSimple
+from DifferentModules.ddpg_agent import DDPGAgent
+from DifferentModules.sac_agent import SACAgent
+from DifferentModules.ERL_Fill_agent import EmotionSACAgent
+from DifferentModules.simple_emotion_sac_agent import SimpleEmotionSACAgent, train_simple_sac
 from MutiConditionEnv import MultiConditionWeightEnv
 from CommonInterface.Logger import init_logger
 from baseline_experiments import (
