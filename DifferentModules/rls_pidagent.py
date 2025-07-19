@@ -238,7 +238,7 @@ class RLS_PIDAgent:
         self.Kd = float(data['Kd'])
 
 
-def train_rls_pid(env, agent, episodes=1000, max_steps=500, log_prefix="rls_pid_exp", model_path=None, pretrain_path=None):
+def train_rls_pid(env, agent, episodes=1000, max_steps=500, log_prefix="rls_pid_exp", model_path=None, pretrain_path=None,logger=None):
     """
     Train an RLS-PID agent in a given environment.
 
@@ -260,7 +260,7 @@ def train_rls_pid(env, agent, episodes=1000, max_steps=500, log_prefix="rls_pid_
 
     # Setup logging and checkpointing directories
     tb_log_dir = f"runs/{log_prefix}"
-    log_file_path = f"logs/rls_pid_training_{log_prefix}.log"
+    log_file_path = f"logs/{log_prefix}.log"
     model_dir = os.path.join("saved_models", log_prefix)
     os.makedirs(model_dir, exist_ok=True)
 

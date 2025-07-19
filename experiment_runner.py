@@ -176,7 +176,7 @@ def run_experiment_1(
     return results
 
 
-def run_experiment_2(algo='sac', train=True, episodes=1000, max_steps=100, device='cuda'):
+def run_experiment_2(algo='sac', train=True, episodes=1000, max_steps=100, device='cuda',log_prefix=None, logger=None):
     from baseline_experiments import (
         build_ddpg_agent,
         build_td3_agent,
@@ -207,44 +207,45 @@ def run_experiment_2(algo='sac', train=True, episodes=1000, max_steps=100, devic
         'cql': build_cql_agent,
         'ppol': build_ppol_agent,
         'rls_pid': build_rls_pid_agent,
-        'emotion_sac': build_emotion_sac_agent,
+        'erl_fill': build_emotion_sac_agent,
         'fuzzy': build_fuzzy_agent  # ✅ 添加 fuzzy agent
     }
     assert algo in algo_builders, f"Unsupported algorithm: {algo}"
     agent = algo_builders[algo](env, device=device)
     env.attach_agent(agent)
 
-    model_dir = os.path.join("saved_models", algo)
+    # log_prefix = f"exp2_{algo}"
+    model_dir = os.path.join("saved_models", log_prefix)
     os.makedirs(model_dir, exist_ok=True)
-    model_path = os.path.join(model_dir, f"{algo}_final.pth")
-    log_prefix = f"exp3_{algo}"
+    model_path = os.path.join(model_dir, f"{log_prefix}_final.pth")
+
 
     if train and algo != 'fuzzy':
         print(f"Start training {algo.upper()}...")
         if algo == 'ddpg':
             from DifferentModules.ddpg_agent import train_ddpg
-            train_ddpg(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
+            train_ddpg(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix, logger=logger)
             agent.save(model_path)
 
         elif algo == 'td3':
-            train_td3(env=env, agent=agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
+            train_td3(env=env, agent=agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix,logger=logger)
             agent.save(model_path)
 
         elif algo == 'td3_bc':
-            train_td3_bc(env=env, agent=agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
+            train_td3_bc(env=env, agent=agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix,logger=logger)
             agent.save(model_path)
 
         elif algo == 'ppo':
             train_ppo(env=env, agent=agent, episodes=episodes, max_steps=max_steps,
-                      log_prefix=log_prefix, model_path=model_path)
+                      log_prefix=log_prefix, model_path=model_path, logger=logger)
 
         elif algo == 'sac':
             train_sac(env=env, agent=agent, episodes=episodes, max_steps=max_steps,
-                      log_prefix=log_prefix, model_path=model_path,logger=logger)
+                      log_prefix=log_prefix, model_path=model_path, logger=logger)
 
         elif algo == 'cql':
             train_cql(env=env, agent=agent, episodes=episodes, max_steps=max_steps,
-                      log_prefix=log_prefix, model_path=model_path)
+                      log_prefix=log_prefix, model_path=model_path, logger=logger)
 
         elif algo == 'ppol':
             train_ppo_lagrangian(env=env, agent=agent, episodes=episodes, max_steps=max_steps,
@@ -254,10 +255,10 @@ def run_experiment_2(algo='sac', train=True, episodes=1000, max_steps=100, devic
             train_rls_pid(env=env, agent=agent, episodes=episodes, max_steps=max_steps,
                           log_prefix=log_prefix, model_path=model_path)
 
-        elif algo == 'emotion_sac':
+        elif algo == 'erl_fill':
             from DifferentModules.ERL_Fill_agent import train_erl_fill
             train_erl_fill(env=env, agent=agent, episodes=episodes, max_steps=max_steps,
-                              log_prefix=log_prefix, model_path=model_path)
+                              log_prefix=log_prefix, model_path=model_path, logger=logger)
         else:
             print("No such module")
 
@@ -267,15 +268,15 @@ def run_experiment_2(algo='sac', train=True, episodes=1000, max_steps=100, devic
         print(f"Start testing {algo.upper()}...")
         if algo != 'fuzzy' and not os.path.exists(model_path):
             raise FileNotFoundError(f"❌ 模型文件不存在: {model_path}")
-        test_episodes = 200
+        test_episodes = 10
         if algo != 'fuzzy':
             agent.load(model_path)
-            test_episodes = 100
+            test_episodes = 10
             print(f"✅ 模型权重已加载：{model_path}")
 
         total_reward = 0
 
-        test_log_path = os.path.join("logs", f"test_result_{algo}.log")
+        test_log_path = os.path.join("logs", f"exp2_{algo}.log")
         os.makedirs("logs", exist_ok=True)
 
         def extract_scalar(v):
@@ -588,7 +589,7 @@ if __name__ == "__main__":
     # === 全局配置 ===
     device = 'cuda'
     train_mode = True        # ✅ True 开始训练，False 开始测试
-    experiment_id = 1        # ✅ 设置为 1、2、3、4 选择实验组
+    experiment_id = 2        # ✅ 设置为 1、2、3、4 选择实验组
     episodes = 5
     max_steps = 50
     test_episodes = 10
@@ -621,7 +622,7 @@ if __name__ == "__main__":
             log_prefix = f"exp1_{group_name}_lambda{lambda_emo}".replace(".", "_")
 
             # 初始化 logger（每组独立日志）
-            logger = init_logger(log_prefix=log_prefix, phase="train", to_console=True)
+            # logger = init_logger()
 
             logger.info(f"=== Running Group: {group_name} | Mode: {mode} | λ_emo: {lambda_emo} ===")
 
@@ -640,7 +641,7 @@ if __name__ == "__main__":
             )
 
             # 初始化 logger（每组独立日志）
-            logger = init_logger(log_prefix=log_prefix, phase="test", to_console=True)
+            # logger = init_logger(log_prefix=log_prefix, phase="test", to_console=True)
 
             # === 测试 ===
             test_results = run_experiment_1(
@@ -662,22 +663,32 @@ if __name__ == "__main__":
 
     # === 实验二：强化学习算法对比实验 ===
     elif experiment_id == 2:
+        logger = init_logger()
+
         print(f"\n=== Running Algorithm Comparison for All Methods ===")
-        algo_list = ['td3','sac','ppo','ddpg','td3_bc','rls_pid', 'cql','emotion_sac', 'fuzzy']  # ✅ 包含模糊控制
+        algo_list = ['ddpg']
+        # algo_list = ['td3', 'sac', 'ppo', 'ddpg', 'td3_bc', 'rls_pid', 'cql', 'erl_fill', 'fuzzy']
         results = []
 
         for algo in algo_list:
-            print(f"\n>>>  Start {algo.upper()} Training & Testing")
+            # === 日志前缀：exp1_ + group_name + lambda ===
+            log_prefix = f"exp2_{algo}"
+
+            # 初始化 logger（每组独立日志）
+            # logger = init_logger(log_prefix=log_prefix, phase="train", to_console=True)
+            print(f"\n Start {algo.upper()} Training & Testing")
             model_path, test_reward = run_experiment_2(
                 algo=algo,
                 train=train_mode,
                 episodes=episodes,
                 max_steps=max_steps,
-                device=device
+                device=device,
+                log_prefix=log_prefix,
+                logger=logger
             )
             results.append((algo, test_reward))
 
-        print("\n=== ✅ 实验三结果对比 ===")
+        print("\n=== ✅ 实验2结果对比 ===")
         for algo, reward in results:
             print(f"[{algo.upper()}] 平均测试奖励: {reward:.2f}")
 

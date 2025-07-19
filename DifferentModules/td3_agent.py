@@ -368,7 +368,7 @@ class TD3Agent:
 #                     level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
-def train_td3(env, agent, episodes=1000, max_steps=500, log_prefix="td3_exp", pretrain_path=None):
+def train_td3(env, agent, episodes=1000, max_steps=500, log_prefix="td3_exp", pretrain_path=None,logger=None):
     """
     Train the TD3 agent on the given environment.
 

@@ -332,7 +332,7 @@ class CQLAgent:
         self.policy.load_state_dict(ckpt['policy'])
 
 
-def train_cql(env, agent, episodes=1000, max_steps=500, log_prefix="simple_cql_exp", model_path=None, pretrain_path=None):
+def train_cql(env, agent, episodes=1000, max_steps=500, log_prefix="simple_cql_exp", model_path=None, pretrain_path=None, logger=None):
     """
     Train a CQL (Conservative Q-Learning) agent in the given environment.
 
@@ -355,7 +355,7 @@ def train_cql(env, agent, episodes=1000, max_steps=500, log_prefix="simple_cql_e
 
     # Logging and checkpoint directories
     tb_log_dir = f"runs/{log_prefix}"
-    log_file_path = f"logs/cql_training_{log_prefix}.log"
+    log_file_path = f"logs/{log_prefix}.log"
     model_dir = os.path.join("saved_models", log_prefix)
     os.makedirs(model_dir, exist_ok=True)
     final_model_path = os.path.join(model_dir, f"{log_prefix}_final.pth")
@@ -363,7 +363,7 @@ def train_cql(env, agent, episodes=1000, max_steps=500, log_prefix="simple_cql_e
         model_path = os.path.join(model_dir, f"{log_prefix}_ep0000.pth")
 
     # Set up logger
-    logger = logging.getLogger(f"cql_logger_{log_prefix}")
+    logger = logging.getLogger(f"{log_prefix}")
     logger.setLevel(logging.INFO)
     logger.propagate = False
     if not logger.handlers:

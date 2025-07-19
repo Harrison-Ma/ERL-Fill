@@ -9,7 +9,7 @@ import torch
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-
+import logging
 
 class GaussianPolicy(nn.Module):
     """
@@ -329,6 +329,14 @@ def train_sac(env, agent, episodes=1000, max_steps=500, log_prefix="simple_sac_e
     # Set up log and model directories
     tb_log_dir = f"runs/{log_prefix}"
     log_file_path = f"logs/{log_prefix}.log"
+
+    logger = logging.getLogger(f"ppo_logger_{log_prefix}")
+    logger.setLevel(logging.INFO)
+    # logger.propagate = False
+    if not logger.handlers:
+        fh = logging.FileHandler(log_file_path, mode='w', encoding='utf-8')
+        fh.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+        logger.addHandler(fh)
     model_dir = os.path.join("saved_models", log_prefix)
     os.makedirs(model_dir, exist_ok=True)
     final_model_path = os.path.join(model_dir, f"{log_prefix}_final.pth")

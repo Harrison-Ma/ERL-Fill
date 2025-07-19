@@ -721,9 +721,10 @@ def train_ddpg(env, agent, episodes=1000, max_steps=500, log_prefix="ddpg_emotio
             start_100 = time.time()
 
         # Save model weights every 10 episodes
-        if ep % 10 == 0 or ep == episodes - 1:
-            torch.save(agent.get_weights(), "ddpg_emotion_agent.pth")
-            logger.info(f"[Episode {ep}] Model weights saved to ddpg_emotion_agent.pth")
+        # if ep % 10 == 0 or ep == episodes - 1:
+            # model_dir = os.path.join("saved_models", log_prefix)
+            # torch.save(agent.get_weights(),"saved_models/"+log_prefix+".pth")
+            # logger.info(f"[Episode {ep}] Model weights saved to ddpg_emotion_agent.pth")
 
         agent.train_step += 1
 

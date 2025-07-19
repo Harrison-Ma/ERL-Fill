@@ -9,17 +9,6 @@ from collections import deque
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-# ============================ Logging Setup ============================
-os.makedirs("logs", exist_ok=True)
-logging.basicConfig(
-    filename="logs/ppo_training.log",
-    filemode="w",
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
-
-
 class DummyMemory:
     """
     A dummy memory buffer that pre-populates a fixed number of experience tuples.
@@ -307,7 +296,7 @@ class PPOAgent:
         self.policy.eval()
 
 
-def train_ppo(env, agent, episodes=1000, max_steps=500, log_prefix="ppo_exp", model_path=None):
+def train_ppo(env, agent, episodes=1000, max_steps=500, log_prefix="ppo_exp", model_path=None, logger=None):
     """
     Train a PPO agent in the given environment.
 
@@ -338,10 +327,10 @@ def train_ppo(env, agent, episodes=1000, max_steps=500, log_prefix="ppo_exp", mo
     writer = SummaryWriter(log_dir=tb_log_dir)
 
     # Setup logger for training info
-    log_file = f"logs/ppo_training_{log_prefix}.log"
+    log_file = f"logs/{log_prefix}.log"
     logger = logging.getLogger(f"ppo_logger_{log_prefix}")
     logger.setLevel(logging.INFO)
-    logger.propagate = False
+    # logger.propagate = False
     if not logger.handlers:
         fh = logging.FileHandler(log_file, mode='w', encoding='utf-8')
         fh.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
@@ -349,8 +338,8 @@ def train_ppo(env, agent, episodes=1000, max_steps=500, log_prefix="ppo_exp", mo
 
     # Define default model checkpoint path if not provided
     if model_path is None:
-        model_path = os.path.join(saved_model_dir, f"ppo_{log_prefix}_latest.pth")
-    final_model_path = os.path.join(saved_model_dir, f"ppo_final_{log_prefix}.pth")
+        model_path = os.path.join(saved_model_dir, f"{log_prefix}.pth")
+    final_model_path = os.path.join(saved_model_dir, f"{log_prefix}_final.pth")
 
     # Main training loop over episodes
     for ep in tqdm(range(episodes), desc="PPO Training", ncols=100):

@@ -301,13 +301,13 @@ def train_erl_fill(env, agent, episodes=1000, max_steps=100, log_prefix="emotion
     return train_erl_fill(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix, lambda_emo=lambda_emo)
 
 
-def train_ppo(env, agent, episodes=1000, max_steps=100, log_prefix="ppo"):
+def train_ppo(env, agent, episodes=1000, max_steps=100, log_prefix="ppo", logger=None):
     """
     Train a PPO agent.
 
     Args and returns same as train_ddpg.
     """
-    return train_ppo(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
+    return train_ppo(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix, logger=None)
 
 
 def train_sac(env, agent, episodes=1000, max_steps=100, log_prefix="sac", pretrain_path=None, logger=None):
@@ -322,13 +322,13 @@ def train_sac(env, agent, episodes=1000, max_steps=100, log_prefix="sac", pretra
     return train_sac(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix, pretrain_path=pretrain_path, logger=None)
 
 
-def train_cql(env, agent, episodes=1000, max_steps=100, log_prefix="cql", pretrain_path=None):
+def train_cql(env, agent, episodes=1000, max_steps=100, log_prefix="cql", pretrain_path=None, logger=None):
     """
     Train a CQL agent, optionally with pretrained weights.
 
     Args and returns same as train_sac.
     """
-    return train_cql(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix, pretrain_path=pretrain_path)
+    return train_cql(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix, pretrain_path=pretrain_path, logger=logger)
 
 
 def train_ppol(env, agent, episodes=1000, max_steps=100, log_prefix="ppol", pretrain_path=None):
@@ -340,13 +340,13 @@ def train_ppol(env, agent, episodes=1000, max_steps=100, log_prefix="ppol", pret
     return train_ppo_lagrangian(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix, pretrain_path=pretrain_path)
 
 
-def train_rls_pid(env, agent, episodes=1000, max_steps=100, log_prefix="rls_pid", pretrain_path=None):
+def train_rls_pid(env, agent, episodes=1000, max_steps=100, log_prefix="rls_pid", pretrain_path=None,logger=None):
     """
     Train an RLS_PID agent, optionally with pretrained weights.
 
     Args and returns same as train_sac.
     """
-    return train_rls_pid(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix, pretrain_path=pretrain_path)
+    return train_rls_pid(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix, pretrain_path=pretrain_path,logger=logger)
 
 
 # =========================

@@ -379,7 +379,7 @@ class TD3BCAgent:
         }
 
 
-def train_td3_bc(env, agent, episodes=1000, max_steps=500, log_prefix="td3_bc_exp", model_path=None, pretrain_path=None):
+def train_td3_bc(env, agent, episodes=1000, max_steps=500, log_prefix="td3_bc_exp", model_path=None, pretrain_path=None, logger=None):
     """
     Train a TD3+BC agent on the given environment.
 
@@ -402,7 +402,7 @@ def train_td3_bc(env, agent, episodes=1000, max_steps=500, log_prefix="td3_bc_ex
     # Setup tensorboard logging directory
     tb_log_dir = f"runs/{log_prefix}"
     # Setup log file path
-    log_file_path = f"logs/td3_bc_training_{log_prefix}.log"
+    log_file_path = f"logs/{log_prefix}.log"
     # Directory for saving models
     model_dir = os.path.join("saved_models", log_prefix)
     os.makedirs(model_dir, exist_ok=True)
@@ -411,7 +411,7 @@ def train_td3_bc(env, agent, episodes=1000, max_steps=500, log_prefix="td3_bc_ex
     if model_path is None:
         model_path = os.path.join(model_dir, f"{log_prefix}_ep0000.pth")
 
-    # Setup logger for training information
+    # # Setup logger for training information
     logger = logging.getLogger(f"td3_bc_logger_{log_prefix}")
     logger.setLevel(logging.INFO)
     logger.propagate = False
