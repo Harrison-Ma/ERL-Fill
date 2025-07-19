@@ -25,6 +25,8 @@ runs/
 
 *.pth
 
+ddpg_emotion_agent.pth
+
 *.csv
 
 __pycache__/
