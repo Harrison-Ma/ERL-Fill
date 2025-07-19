@@ -216,7 +216,7 @@ def build_rls_pid_agent(env, device):
     return RLS_PIDAgent(env, device=device)
 
 
-def build_emotion_sac_agent(env, device, lambda_emo=0.05):
+def build_erl_fill_agent(env, device, lambda_emo=0.05):
     """
     Create and return an Emotion-SAC agent.
 
@@ -360,7 +360,7 @@ algo_builders = {
     "td3": build_td3_agent,
     "td3_bc": build_td3_bc_agent,
     # "emotion_td3": build_emotion_td3_agent,  # ✅ Newly added
-    "emotion_sac": build_emotion_sac_agent,   # ← Added Emotion-SAC agent
+    "emotion_sac": build_erl_fill_agent,   # ← Added Emotion-SAC agent
     "ppo": build_ppo_agent,
     "sac": build_sac_agent,
     "cql": build_cql_agent,

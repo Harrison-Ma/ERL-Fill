@@ -17,7 +17,6 @@
 ```bash
 .
 ├── baseline_experiments.py         # Baseline experiment script
-├── ddpg_emotion_agent.pth          # Pretrained model weights
 ├── EmotionModule.py                # Emotion module
 ├── experiment_runner.py            # Main experiment entry
 ├── MutiConditionEnv.py             # Multi-condition environment
@@ -27,14 +26,11 @@
 ├── README.md
 ├── README_zh.md                    # Chinese documentation
 ├── DifferentModules/               # Emotion adapters, buffers, loggers, etc.
-├── components/                     # Component modules
-├── configs/                        # Configuration files
 ├── CommonInterface/                # Common interfaces
 ├── analysis_outputs/               # Analysis outputs
 ├── logs/                           # Training logs
 ├── runs/                           # TensorBoard logs
 ├── saved_models/                   # Model checkpoints
-├── __pycache__/                    # Python cache files
 ```
 
 ## ⚙️ Dependencies

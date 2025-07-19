@@ -10,6 +10,9 @@ bin-release/
 logs/
 runs/
 
+# Ignore JetBrains IDE config
+.idea/
+
 # Executables
 *.swf
 *.air

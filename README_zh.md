@@ -17,7 +17,6 @@
 ```bash
 .
 ├── baseline_experiments.py         # 基线实验脚本
-├── ddpg_emotion_agent.pth          # 预训练模型权重
 ├── EmotionModule.py                # 情感模块
 ├── experiment_runner.py            # 主实验入口
 ├── MutiConditionEnv.py             # 多工况环境
@@ -27,14 +26,11 @@
 ├── README.md                       # 英文文档
 ├── README_zh.md                    # 中文文档
 ├── DifferentModules/               # 情感适配器、缓冲区、日志等模块
-├── components/                     # 组件模块
-├── configs/                        # 配置文件
 ├── CommonInterface/                # 通用接口
 ├── analysis_outputs/               # 分析输出
 ├── logs/                           # 训练日志
 ├── runs/                           # TensorBoard 日志
 ├── saved_models/                   # 模型检查点
-├── __pycache__/                    # Python 缓存文件夹
 ```
 
 ## ⚙️ 依赖

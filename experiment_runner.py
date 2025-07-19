@@ -183,7 +183,7 @@ def run_experiment_2(algo='sac', train=True, episodes=1000, max_steps=100, devic
         build_ppo_agent,
         build_sac_agent,
         build_td3_bc_agent, build_cql_agent,
-        build_emotion_sac_agent,
+        build_erl_fill_agent,
         build_fuzzy_agent,
         build_ppol_agent, build_rls_pid_agent
     )
@@ -207,7 +207,7 @@ def run_experiment_2(algo='sac', train=True, episodes=1000, max_steps=100, devic
         'cql': build_cql_agent,
         'ppol': build_ppol_agent,
         'rls_pid': build_rls_pid_agent,
-        'erl_fill': build_emotion_sac_agent,
+        'erl_fill': build_erl_fill_agent,
         'fuzzy': build_fuzzy_agent  # ✅ 添加 fuzzy agent
     }
     assert algo in algo_builders, f"Unsupported algorithm: {algo}"
@@ -409,16 +409,10 @@ def run_experiment_3(train=True, episodes=1000, max_steps=100, device='cuda', al
     # === 2. Agent 构建函数 ===
     def build_agent(env, algo_name, device):
         if algo_name == 'er_ddpg':
-            # from WeightDemo import DDPGAgent, EmotionModule
             agent = DDPGAgent(env, device=device, use_td_error=True)
             agent.emotion = EmotionModule(device=device)
-        # elif algo_name == 'emotion_td3':
-        #     from Emotion_TD3 import EmotionTD3Agent
-        #     agent = EmotionTD3Agent(env, device=device, use_td_error=True)
-        elif algo_name == 'emotion_sac':
-            # from Emotion_sac import EmotionSACAgent
+        elif algo_name == 'erl_fill':
             agent = EmotionSACAgent(env, device=device)
-            # agent.emotion = EmotionModule(device=device)
         else:
             raise ValueError(f"Unsupported algorithm: {algo_name}")
         return agent
@@ -427,16 +421,14 @@ def run_experiment_3(train=True, episodes=1000, max_steps=100, device='cuda', al
     train_funcs = {
         'er_ddpg': lambda env, agent, episodes, max_steps, log_prefix, logger:
         train_ddpg(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix, logger=logger),
-        # 'emotion_td3': lambda env, agent, episodes, max_steps, log_prefix, logger:
-        # train_emotion_td3(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix),
-        'emotion_sac': lambda env, agent, episodes, max_steps, log_prefix, logger:
+        'erl_fill': lambda env, agent, episodes, max_steps, log_prefix, logger:
         train_erl_fill(env, agent, episodes=episodes, max_steps=max_steps, log_prefix=log_prefix)
     }
 
     # === 4. 初始化目录 ===
-    os.makedirs(f"saved_models/{algo}", exist_ok=True)
-    os.makedirs(f"logs/{algo}", exist_ok=True)
-    os.makedirs("analysis_outputs/exp4", exist_ok=True)
+    # os.makedirs(f"saved_models/{algo}", exist_ok=True)
+    # os.makedirs(f"logs/{algo}", exist_ok=True)
+    os.makedirs("analysis_outputs/exp3", exist_ok=True)
 
     results = []
 
@@ -448,9 +440,12 @@ def run_experiment_3(train=True, episodes=1000, max_steps=100, device='cuda', al
         agent = build_agent(env, algo, device)
         env.attach_agent(agent)
 
-        log_prefix = f"exp4_{algo}_{key}"
-        model_path = f"saved_models/{algo}/{key}_final.pth"
-        log_file_path = f"logs/{algo}/train_{log_prefix}.log"
+        log_prefix = f"exp3_{algo}_{key}"
+        model_path = f"saved_models/exp3_{algo}/{key}_final.pth"
+        log_file_path = f"logs/{log_prefix}_train.log"
+
+        # ✅ 确保日志目录存在
+        os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
 
         # Logger配置
         logger = logging.getLogger(log_prefix)
@@ -472,7 +467,7 @@ def run_experiment_3(train=True, episodes=1000, max_steps=100, device='cuda', al
         total_reward, total_weight_err, total_time = 0, 0, 0
         results_detail = []
 
-        test_log_file = f"logs/{algo}/test_{log_prefix}.log"
+        test_log_file = f"logs/{log_prefix}_test.log"
         with open(test_log_file, "w", encoding="utf-8") as f:
             for ep in range(10):
                 state = env.reset()
@@ -534,10 +529,10 @@ def run_experiment_3(train=True, episodes=1000, max_steps=100, device='cuda', al
 
         # 保存每个variant的详细CSV
         df_detail = pd.DataFrame(results_detail)
-        df_detail.to_csv(f"analysis_outputs/exp4/test_results_{algo}_{key}.csv", index=False, encoding="utf-8-sig")
+        df_detail.to_csv(f"analysis_outputs/exp3/test_results_{algo}_{key}.csv", index=False, encoding="utf-8-sig")
 
     # 汇总所有Condition的结果
-    result_file = f"logs/{algo}/experiment4_summary.txt"
+    result_file = f"logs/exp3_summary.log"
     with open(result_file, "w", encoding="utf-8") as f:
         f.write("Condition\tReward\tWeightErr(g)\tTime(s)\n")
         for name, score, err, t in results:
@@ -548,16 +543,16 @@ def run_experiment_3(train=True, episodes=1000, max_steps=100, device='cuda', al
 def run_experiment_4(device='cuda', max_steps=100, train=True, use_off_sim=1):
     # 预设阶段训练配置
     experiment_configs = {
-        1: [{"env_mode": "sim",     "episodes": 5000, "log_prefix": "stage1_sim"}],
+        1: [{"env_mode": "sim",     "episodes": 10, "log_prefix": "stage1_sim"}],
         0: [{"env_mode": "onboard", "episodes": 500,  "log_prefix": "stage2_onboard"}],
         2: [{"env_mode": "real",    "episodes": 100,  "log_prefix": "stage3_real"}],
-        3: [{"env_mode": "continue", "episodes": 5000, "log_prefix": "stage3_real"}]
+        3: [{"env_mode": "continue", "episodes": 5000, "log_prefix": "stage4_real"}]
     }
 
-    stage_names = {1: "stage1", 0: "stage2", 2: "stage3", 3:"stage4"}
+    stage_names = {1: "stage1", 0: "stage2", 2: "stage3", 3: "stage4"}
 
     if use_off_sim not in experiment_configs:
-        print(f"❌ Invalid value for use_off_sim: {use_off_sim}. Must be 0, 1,  2 or 3.")
+        print(f"❌ Invalid value for use_off_sim: {use_off_sim}. Must be 0, 1, 2 or 3.")
         return
 
     selected_stage = experiment_configs[use_off_sim]
@@ -568,6 +563,22 @@ def run_experiment_4(device='cuda', max_steps=100, train=True, use_off_sim=1):
     model_path = None  # 可复用权重路径
 
     for i, cfg in enumerate(selected_stage):
+        log_prefix = f"exp4_erl_fill_{cfg['log_prefix']}"
+        log_file_path = f"logs/{log_prefix}_train.log"
+        model_path = f"saved_models/exp4_erl_fill/{cfg['log_prefix']}_final.pth"
+
+        # ✅ 确保日志和模型目录存在
+        os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
+        os.makedirs(os.path.dirname(model_path), exist_ok=True)
+
+        # ✅ Logger 配置
+        logger = logging.getLogger(log_prefix)
+        logger.setLevel(logging.INFO)
+        if not logger.handlers:
+            fh = logging.FileHandler(log_file_path, mode='w', encoding='utf-8')
+            fh.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+            logger.addHandler(fh)
+
         print(f"▶️  Phase {i+1} | Mode: {cfg['env_mode']} | Episodes: {cfg['episodes']}")
 
         model_path = run_experiment_1(
@@ -578,8 +589,8 @@ def run_experiment_4(device='cuda', max_steps=100, train=True, use_off_sim=1):
             device=device,
             env_mode=cfg["env_mode"],
             train=train,
-            experiment_id=3,
-            lambda_emo = 0.05,
+            lambda_emo=0.05,
+            log_prefix=f"{log_prefix}_train",
             logger=logger
         )
 
@@ -589,7 +600,7 @@ if __name__ == "__main__":
     # === 全局配置 ===
     device = 'cuda'
     train_mode = True        # ✅ True 开始训练，False 开始测试
-    experiment_id = 2        # ✅ 设置为 1、2、3、4 选择实验组
+    experiment_id = 4        # ✅ 设置为 1、2、3、4 选择实验组
     episodes = 5
     max_steps = 50
     test_episodes = 10
@@ -697,7 +708,7 @@ if __name__ == "__main__":
         print(f"\n=== Running Multi-Condition Comparison Experiment ===")
 
         # 选择要跑的算法
-        algo_list = ['emotion_sac']  # 可以任选
+        algo_list = ['erl_fill']  # 可以任选
 
         for algo in algo_list:
             print(f"\n=== 🚀 Running {algo.upper()} for Multi-Condition ===")

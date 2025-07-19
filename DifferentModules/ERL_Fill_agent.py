@@ -454,6 +454,8 @@ class EmotionSACAgent:
         Args:
             path (str): File path for saving policy weights.
         """
+
+        os.makedirs(os.path.dirname(path), exist_ok=True)
         torch.save({
             "policy": self.policy.state_dict()
         }, path)
