@@ -543,7 +543,7 @@ def run_experiment_3(train=True, episodes=1000, max_steps=100, device='cuda', al
 def run_experiment_4(device='cuda', max_steps=100, train=True, use_off_sim=1):
     # 预设阶段训练配置
     experiment_configs = {
-        1: [{"env_mode": "sim",     "episodes": 10, "log_prefix": "stage1_sim"}],
+        1: [{"env_mode": "sim",     "episodes": 5000, "log_prefix": "stage1_sim"}],
         0: [{"env_mode": "onboard", "episodes": 500,  "log_prefix": "stage2_onboard"}],
         2: [{"env_mode": "real",    "episodes": 100,  "log_prefix": "stage3_real"}],
         3: [{"env_mode": "continue", "episodes": 5000, "log_prefix": "stage4_real"}]
@@ -589,7 +589,7 @@ def run_experiment_4(device='cuda', max_steps=100, train=True, use_off_sim=1):
             device=device,
             env_mode=cfg["env_mode"],
             train=train,
-            lambda_emo=0.05,
+            lambda_emo=0.1,
             log_prefix=f"{log_prefix}_train",
             logger=logger
         )

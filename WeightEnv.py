@@ -414,67 +414,144 @@ class WeightEnv:
         elif self.use_offline_sim == 2:
             _, _, _, total_time, final_weight = self._run_real(action)
 
-        # ✅ Compute weight and time error
-        weight_error = abs(final_weight - self.target_weight)
-        feeding_time = total_time * 1000  # in milliseconds
-        time_error = abs(total_time - self.target_time)
+        origin_1 = 2
+        if origin_1 == 1:
+            # ✅ Compute weight and time error
+            weight_error = abs(final_weight - self.target_weight)
+            feeding_time = total_time * 1000  # in milliseconds
+            time_error = abs(total_time - self.target_time)
 
-        # ✅ Reward shaping: weight error
-        if weight_error <= 5:
-            error_reward = 8000 - 200 * weight_error
-        elif weight_error <= 10:
-            error_reward = 6000 - 120 * (weight_error - 5)
-        elif weight_error <= 15:
-            error_reward = 4000 - 40 * (weight_error - 10)
-        elif weight_error <= 20:
-            error_reward = 2000 - 20 * (weight_error - 15)
-        elif weight_error <= 25:
-            error_reward = -1000 - 10 * (weight_error - 20)
-        elif weight_error <= 50:
-            error_reward = -3000 - 5 * (weight_error - 25)
+            # ✅ Reward shaping: weight error
+            if weight_error <= 5:
+                error_reward = 8000 - 200 * weight_error
+            elif weight_error <= 10:
+                error_reward = 6000 - 120 * (weight_error - 5)
+            elif weight_error <= 15:
+                error_reward = 4000 - 40 * (weight_error - 10)
+            elif weight_error <= 20:
+                error_reward = 2000 - 20 * (weight_error - 15)
+            elif weight_error <= 25:
+                error_reward = -1000 - 10 * (weight_error - 20)
+            elif weight_error <= 50:
+                error_reward = -3000 - 5 * (weight_error - 25)
+            else:
+                error_reward = -4000 - 0.5 * (weight_error - 50)
+
+            # ✅ Reward shaping: time error
+            if time_error <= 0.1 * self.target_time:
+                time_reward = +3000
+            elif time_error <= 0.3 * self.target_time:
+                time_reward = +1000
+            elif time_error <= 0.5 * self.target_time:
+                time_reward = +500
+            elif time_error <= 0.8 * self.target_time:
+                time_reward = -1000
+            elif time_error <= 1.2 * self.target_time:
+                time_reward = -2000
+            elif time_error <= 2 * self.target_time:
+                time_reward = -3000
+            else:
+                time_reward = -3000 - (time_error - 2 * self.target_time) * 500
+
+            # ✅ Optional smooth reward based on how fast it reaches target (tanh-shaped)
+            target_reward = 0
+            if weight_error <= 25:
+                time_factor = np.clip((3 * self.target_time - total_time) / self.target_time, 0, 3)
+                target_reward = 2000 * np.tanh(time_factor)
+
+            # ✅ Boundary penalty to encourage actions away from min/max
+            boundary_penalty = 0
+            penalty_per_action = 300
+            buffer_ratio = 0.05
+
+            for key, value in action.items():
+                if key not in self.bounds:
+                    continue
+                lower, upper = self.bounds[key]
+                buffer = (upper - lower) * buffer_ratio
+                if value <= lower + buffer or value >= upper - buffer:
+                    boundary_penalty -= penalty_per_action
+
+            print("boundary_penalty: ", boundary_penalty)
+
+            # ✅ Total reward aggregation with limits
+            base_reward = -5000
+            reward = base_reward + error_reward + time_reward + target_reward + boundary_penalty
         else:
-            error_reward = -4000 - 0.5 * (weight_error - 50)
+            # === 误差计算 ===
+            weight_error = abs(final_weight - self.target_weight)
+            time_error = abs(total_time - self.target_time)
+            feeding_time = total_time * 1000  # 仅供参考
 
-        # ✅ Reward shaping: time error
-        if time_error <= 0.1 * self.target_time:
-            time_reward = +3000
-        elif time_error <= 0.3 * self.target_time:
-            time_reward = +1000
-        elif time_error <= 0.5 * self.target_time:
-            time_reward = +500
-        elif time_error <= 0.8 * self.target_time:
-            time_reward = -1000
-        elif time_error <= 1.2 * self.target_time:
-            time_reward = -2000
-        elif time_error <= 2 * self.target_time:
-            time_reward = -3000
-        else:
-            time_reward = -3000 - (time_error - 2 * self.target_time) * 500
+            # === reward_1: weight 精度奖励 ===
+            if weight_error <= 5:
+                reward_1 = 8000 - 200 * weight_error
+            elif weight_error <= 10:
+                reward_1 = 6000 - 120 * (weight_error - 5)
+            elif weight_error <= 15:
+                reward_1 = 4000 - 40 * (weight_error - 10)
+            elif weight_error <= 20:
+                reward_1 = 2000 - 20 * (weight_error - 15)
+            elif weight_error <= 25:
+                reward_1 = -1000 - 10 * (weight_error - 20)
+            elif weight_error <= 50:
+                reward_1 = -3000 - 5 * (weight_error - 25)
+            else:
+                reward_1 = -4000 - 0.5 * (weight_error - 50)
 
-        # ✅ Optional smooth reward based on how fast it reaches target (tanh-shaped)
-        target_reward = 0
-        if weight_error <= 25:
-            time_factor = np.clip((3 * self.target_time - total_time) / self.target_time, 0, 3)
-            target_reward = 2000 * np.tanh(time_factor)
+            # === reward_2: 时间误差奖励 ===
+            if time_error <= 0.1 * self.target_time:
+                reward_2 = +3000
+            elif time_error <= 0.3 * self.target_time:
+                reward_2 = +1000
+            elif time_error <= 0.5 * self.target_time:
+                reward_2 = +500
+            elif time_error <= 0.8 * self.target_time:
+                reward_2 = -1000
+            elif time_error <= 1.2 * self.target_time:
+                reward_2 = -2000
+            elif time_error <= 2 * self.target_time:
+                reward_2 = -3000
+            else:
+                reward_2 = -3000 - (time_error - 1.05* self.target_time) * 500
 
-        # ✅ Boundary penalty to encourage actions away from min/max
-        boundary_penalty = 0
-        penalty_per_action = 300
-        buffer_ratio = 0.05
+            # === reward_3: tanh 型平滑奖励 ===
+            reward_3 = 0
+            if weight_error <= 25:
+                time_factor = np.clip((3 * self.target_time - total_time) / self.target_time, 0, 3)
+                reward_3 = 2000 * np.tanh(time_factor)
 
-        for key, value in action.items():
-            if key not in self.bounds:
-                continue
-            lower, upper = self.bounds[key]
-            buffer = (upper - lower) * buffer_ratio
-            if value <= lower + buffer or value >= upper - buffer:
-                boundary_penalty -= penalty_per_action
+            # === reward_4: 动作多样性（std） ===
+            reward_4 = np.std(np.array(list(action.values()))) * 0.2
 
-        print("boundary_penalty: ", boundary_penalty)
+            # === penalty: 动作靠近边界的惩罚项 ===
+            penalty = 0
+            penalty_per_action = 300
+            buffer_ratio = 0.05
+            for key, value in action.items():
+                if key not in self.bounds:
+                    continue
+                lower, upper = self.bounds[key]
+                buffer = (upper - lower) * buffer_ratio
+                if value <= lower + buffer or value >= upper - buffer:
+                    penalty += 1  # 每个越界动作计入惩罚
 
-        # ✅ Total reward aggregation with limits
-        base_reward = -5000
-        reward = base_reward + error_reward + time_reward + target_reward + boundary_penalty
+            boundary_penalty = -penalty_per_action * penalty
+
+            # === 奖励加权系数（可调） ===
+            w_base = 3500  #For adjusting contrast amplitude and limit range
+            w1, w2, w3, w4, w5 = 0.3, 0.3, 0.2, 0.15, 0.05
+
+            # === 总奖励计算 ===
+            reward = (
+                    w_base +
+                    w1 * reward_1 +
+                    w2 * reward_2 +
+                    w3 * reward_3 +
+                    w4 * reward_4 +
+                    w5 * boundary_penalty
+            )
+
         reward = max(reward, -10000)
         reward = min(reward, 10000)
 
