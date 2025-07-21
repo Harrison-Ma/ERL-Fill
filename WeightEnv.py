@@ -478,12 +478,12 @@ class WeightEnv:
             base_reward = -5000
             reward = base_reward + error_reward + time_reward + target_reward + boundary_penalty
         else:
-            # === 误差计算 ===
-            weight_error = abs(final_weight - self.target_weight)
-            time_error = abs(total_time - self.target_time)
-            feeding_time = total_time * 1000  # 仅供参考
+            # === Error computation ===
+            weight_error = abs(final_weight - self.target_weight)  # Absolute weight error
+            time_error = abs(total_time - self.target_time)        # Absolute time error
+            feeding_time = total_time * 1000  # Feeding time in milliseconds (for reference only)
 
-            # === reward_1: weight 精度奖励 ===
+            # === reward_1: Piecewise reward based on weight accuracy ===
             if weight_error <= 5:
                 reward_1 = 8000 - 200 * weight_error
             elif weight_error <= 10:
@@ -499,7 +499,7 @@ class WeightEnv:
             else:
                 reward_1 = -4000 - 0.5 * (weight_error - 50)
 
-            # === reward_2: 时间误差奖励 ===
+            # === reward_2: Reward based on timing accuracy ===
             if time_error <= 0.1 * self.target_time:
                 reward_2 = +3000
             elif time_error <= 0.3 * self.target_time:
@@ -513,18 +513,18 @@ class WeightEnv:
             elif time_error <= 2 * self.target_time:
                 reward_2 = -3000
             else:
-                reward_2 = -3000 - (time_error - 1.05* self.target_time) * 500
+                reward_2 = -3000 - (time_error - 1.05 * self.target_time) * 500
 
-            # === reward_3: tanh 型平滑奖励 ===
+            # === reward_3: Smooth tanh-shaped reward (for faster completion) ===
             reward_3 = 0
             if weight_error <= 25:
                 time_factor = np.clip((3 * self.target_time - total_time) / self.target_time, 0, 3)
                 reward_3 = 2000 * np.tanh(time_factor)
 
-            # === reward_4: 动作多样性（std） ===
+            # === reward_4: Action diversity reward (based on standard deviation) ===
             reward_4 = np.std(np.array(list(action.values()))) * 0.2
 
-            # === penalty: 动作靠近边界的惩罚项 ===
+            # === penalty: Penalty for actions too close to the boundary ===
             penalty = 0
             penalty_per_action = 300
             buffer_ratio = 0.05
@@ -534,15 +534,15 @@ class WeightEnv:
                 lower, upper = self.bounds[key]
                 buffer = (upper - lower) * buffer_ratio
                 if value <= lower + buffer or value >= upper - buffer:
-                    penalty += 1  # 每个越界动作计入惩罚
+                    penalty += 1  # Each action close to the boundary adds to the penalty
 
             boundary_penalty = -penalty_per_action * penalty
 
-            # === 奖励加权系数（可调） ===
-            w_base = 3500  #For adjusting contrast amplitude and limit range
+            # === Reward weights (adjustable) ===
+            w_base = 3500  # Baseline value to scale reward range and contrast
             w1, w2, w3, w4, w5 = 0.3, 0.3, 0.2, 0.15, 0.05
 
-            # === 总奖励计算 ===
+            # === Total reward calculation ===
             reward = (
                     w_base +
                     w1 * reward_1 +
