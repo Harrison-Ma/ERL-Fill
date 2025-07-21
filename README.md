@@ -1,5 +1,3 @@
-[English](README.md) | [中文](README_zh.md)
-
 # About ERL-Fill
 
 **ERL-Fill** (Emotion-aware Reinforcement Learning for Filling) is an advanced reinforcement learning framework tailored for high-precision, high-efficiency control of gas–solid two-phase flow filling systems under complex and variable working conditions.
@@ -9,7 +7,7 @@
 - 🎯 **Transformer-Based Emotion Adapter**: Captures temporal emotional dynamics—such as anxiety, conservativeness, and exploration—to modulate policy learning and enhance adaptability under non-stationary environments.
 - 📦 **Gradient-Guided Reward Mechanism**: A multi-dimensional reward design that balances filling accuracy, timing efficiency, and operational safety, accelerating convergence while improving policy robustness.
 - 🧠 **Staged Pretraining Strategy**: A three-phase training curriculum involving virtual simulation, on-board embedded control, and real-system fine-tuning (5,000 → 1,000 → 200 episodes), enabling safe and efficient policy transfer to real-world systems.
-- 🧮 **Adaptive Deployment Across Diverse Conditions**: Custom gradient-based rewards for precision and timing optimization.
+- 🧮 **Adaptive Deployment Across Diverse Conditions**: Enables robust control under varying weights, time constraints, and operational disturbances.
 - 🔧 **Multi-Algorithm Benchmarking**: Supports comparative evaluation across DDPG, TD3, SAC, PPO, CQL, PID, TD3+BC, and RLS+PID.
 
 ## 📁 Project Structure
@@ -95,12 +93,19 @@ pip install -r requirements.txt
 ```
 
 ## 🚀 Getting Started
-Example training (ER-DDPG baseline):
+Example training:
 
 ```bash
-python experiment_runner.py --algo er_ddpg --experiment_id 1
+python experiment_runner.py
 ```
 Other available algorithms: ddpg, sac, ppo, cql, pid, td3_bc, rls_pid.
+
+| Experiment ID | Description                      |
+|---------------|----------------------------------|
+| 1             | Emotion mechanism ablation       |
+| 2             | Baseline algorithm comparison    |
+| 3             | Multi-condition testing          |
+| 4             | Multi-stage pretraining          |
 
 ## 📖 Citation
 If you use ERL-Fill, please cite:
@@ -114,5 +119,7 @@ If you use ERL-Fill, please cite:
   year      = {2025}
 }
 ```
+📄 Paper under major revision. [Link will be provided upon publication.]
+
 ## 📄 License
 MIT License. See LICENSE for details.
