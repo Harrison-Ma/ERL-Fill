@@ -1,16 +1,16 @@
 [English](README.md) | [中文](README_zh.md)
 
-# ERL-Fill
+# About ERL-Fill
 
-**ERL-Fill** is an Emotion-Driven Reinforcement Learning framework for high-precision gas–solid flow filling control. It integrates multimodal perception, transformer-based emotion modeling, staged pretraining, and reward shaping to achieve adaptive, high-accuracy performance across dynamic industrial conditions.
+**ERL-Fill** (Emotion-aware Reinforcement Learning for Filling) is an advanced reinforcement learning framework tailored for high-precision, high-efficiency control of gas–solid two-phase flow filling systems under complex and variable working conditions.
 
 ## 🔍 Highlights
 
-- 🎯 **Emotion-Aware RL**: Transformer-based emotion adapter regulates exploration/exploitation balance.
-- 📦 **Multimodal Sensing**: Integrates time-series signals (e.g., pressure, vibration) with visual inputs.
-- 🧠 **Staged Pretraining**: Sim → Onboard → Real transfer for efficient domain adaptation.
-- 🧮 **Reward Shaping**: Custom gradient-based rewards for precision and timing optimization.
-- 🔧 **Modular Framework**: Supports ER-DDPG, Vanilla-DDPG, TD3, SAC, PPO, CQL, PID, TD3+BC, PPO-Lagrangian, and RLS+PID.
+- 🎯 **Transformer-Based Emotion Adapter**: Captures temporal emotional dynamics—such as anxiety, conservativeness, and exploration—to modulate policy learning and enhance adaptability under non-stationary environments.
+- 📦 **Gradient-Guided Reward Mechanism**: A multi-dimensional reward design that balances filling accuracy, timing efficiency, and operational safety, accelerating convergence while improving policy robustness.
+- 🧠 **Staged Pretraining Strategy**: A three-phase training curriculum involving virtual simulation, on-board embedded control, and real-system fine-tuning (5,000 → 1,000 → 200 episodes), enabling safe and efficient policy transfer to real-world systems.
+- 🧮 **Adaptive Deployment Across Diverse Conditions**: Custom gradient-based rewards for precision and timing optimization.
+- 🔧 **Multi-Algorithm Benchmarking**: Supports comparative evaluation across DDPG, TD3, SAC, PPO, CQL, PID, TD3+BC, and RLS+PID.
 
 ## 📁 Project Structure
 
@@ -100,17 +100,18 @@ Example training (ER-DDPG baseline):
 ```bash
 python experiment_runner.py --algo er_ddpg --experiment_id 1
 ```
-Other available algorithms: ddpg, sac, ppo, cql, pid, ppo_lagrangian, td3_bc, rls_pid.
+Other available algorithms: ddpg, sac, ppo, cql, pid, td3_bc, rls_pid.
 
 ## 📖 Citation
 If you use ERL-Fill, please cite:
 
 ```bibtex
 @article{ma2025erlfill,
-  title={ERL-Fill: An Emotion-Aware Reinforcement Learning Framework with Staged Pretraining for Gas--Solid Flow Filling Control},
-  author={Ma, Qihang and Peng, Gaoliang and Zhang, Wei and Zhao, Benqi and Chen, Zhao and Jin, Kang},
-  journal={IEEE Transactions on Industrial Electronics},
-  year={2025}
+  author    = {Qihang Ma and Gaoliang Peng and Wei Zhang and Jinghan Wang},
+  title     = {{ERL-Fill}: An Emotion-Aware Reinforcement Learning Framework with Staged Pretraining for Gas--Solid Flow Filling Control},
+  journal   = {IEEE Transactions on Industrial Electronics},
+  note      = {under major revision},
+  year      = {2025}
 }
 ```
 ## 📄 License
